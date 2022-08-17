@@ -5,7 +5,7 @@
   <artifactId>task-jockey</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <name>task-jockey</name>
-  <description>FIXME: my new library.</description>
+  <description>Pueue-like task management tool implemented in Clojure</description>
   <url>https://github.com/athos/task-jockey</url>
   <licenses>
     <license>

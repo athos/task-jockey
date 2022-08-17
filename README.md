@@ -1,5 +1,7 @@
 # task-jockey
 
+[Pueue](https://github.com/Nukesor/pueue)-like task management tool implemented in Clojure
+
 ## Usage
 
 FIXME
