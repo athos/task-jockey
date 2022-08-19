@@ -1,18 +1,29 @@
 (ns task-jockey.task-jockey)
 
-(def state (volatile! {:tasks (sorted-map)}))
-(def task-handler
-  (volatile! {:children (sorted-map)}))
+(defn make-state []
+  {:tasks (sorted-map)
+   :groups {"default" {:parallel-tasks 1}}})
+
+(def state (volatile! (make-state)))
+
+(defn make-task-handler []
+  {:children {"default" (sorted-map)}})
+
+(def task-handler (volatile! (make-task-handler)))
 
 (defn add-task [state task]
   (let [next-id (or (some-> (rseq (:tasks state)) ffirst inc) 0)]
     (assoc-in state [:tasks next-id] (assoc task :id next-id))))
 
 (defn next-task-id [{:keys [children]} locked-state]
-  (when-not (seq children)
-    (->> (:tasks @locked-state)
-         (filter #(= (:status (val %)) :queued))
-         ffirst)))
+  (->> (:tasks @locked-state)
+       (filter (fn [[_ {:keys [group] :as task}]]
+                 (and (= (:status task) :queued)
+                      (let [running-tasks (get children group)]
+                        (< (count running-tasks)
+                           (get-in @locked-state
+                                   [:groups group :parallel-tasks]))))))
+       ffirst))
 
 (defn now [] (java.util.Date.))
 
@@ -22,7 +33,7 @@
         child (.start pb)]
     (vswap! locked-state update-in [:tasks id]
             assoc :status :running :start (now))
-    (assoc-in task-handler [:children id] child)))
+    (assoc-in task-handler [:children (:group task) id] child)))
 
 (defn spawn-new [task-handler state]
   (locking state
