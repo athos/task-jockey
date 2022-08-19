@@ -1,8 +1,12 @@
 (ns task-jockey.task-jockey
-  (:require [clojure.pprint :as pp]
+  (:require [clojure.java.io :as io]
+            [clojure.pprint :as pp]
             [clojure.string :as str])
-  (:import [java.text SimpleDateFormat]
+  (:import [java.io File]
+           [java.text SimpleDateFormat]
            [java.util Date]))
+
+(def task-log-directory "task_logs")
 
 (defn make-state []
   {:tasks (sorted-map)
@@ -31,9 +35,32 @@
              state
              (:tasks state)))
 
+(defn log-file-path ^File [task-id]
+  (io/file task-log-directory (str task-id ".log")))
+
+(defn read-log-file [task-id]
+  (slurp (log-file-path task-id)))
+
 (defn stringify-date [^Date date]
   (let [formatter (SimpleDateFormat. "HH:mm:ss")]
     (.format formatter date)))
+
+(defn print-log [task]
+  (printf "--- Task %d: %s ---\n" (:id task) (name (:status task)))
+  (println "Command:" (str/join (:command task)))
+  (println "  Start:" (stringify-date (:start task)))
+  (println "    End:" (stringify-date (:end task)))
+  (newline)
+  (println "output:")
+  (print (read-log-file (:id task)))
+  (flush))
+
+(defn print-logs [state task-ids]
+  (doseq [[_ task] (:tasks state)
+          :when (or (empty? task-ids)
+                    (contains? task-ids (:id task)))]
+    (print-log task)
+    (newline)))
 
 (defn print-single-group [state group-name]
   (let [group (get-in state [:groups group-name])
@@ -77,8 +104,11 @@
 (defn start-process [task-handler id]
   (let [task (get-in @(:state task-handler) [:tasks id])
         worker-id (next-group-worker task-handler (:group task))
-        pb (ProcessBuilder. (:command task))
-        child (.start pb)]
+        log-file (log-file-path id)
+        child (-> (ProcessBuilder. (:command task))
+                  (.redirectOutput log-file)
+                  (.redirectError log-file)
+                  (.start))]
     (vswap! (:state task-handler) update-in [:tasks id]
             assoc :status :running :start (now))
     (assoc-in task-handler [:children (:group task) worker-id]
