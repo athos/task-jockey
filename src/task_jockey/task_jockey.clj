@@ -25,15 +25,26 @@
                            (get-in @state [:groups group :parallel-tasks]))))))
        ffirst))
 
+(defn next-group-worker [{:keys [children]} group]
+  (let [pool (get children group)]
+    (or (->> pool
+             (keep-indexed (fn [i [worker-id _]]
+                             (when (not= i worker-id)
+                               i)))
+             first)
+        (count pool))))
+
 (defn now [] (java.util.Date.))
 
 (defn start-process [task-handler id]
   (let [task (get-in @(:state task-handler) [:tasks id])
+        worker-id (next-group-worker task-handler (:group task))
         pb (ProcessBuilder. (:command task))
         child (.start pb)]
     (vswap! (:state task-handler) update-in [:tasks id]
             assoc :status :running :start (now))
-    (assoc-in task-handler [:children (:group task) id] child)))
+    (assoc-in task-handler [:children (:group task) worker-id]
+              {:task id :child child})))
 
 (defn spawn-new [task-handler]
   (locking (:state task-handler)
