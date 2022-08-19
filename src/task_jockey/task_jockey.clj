@@ -20,6 +20,17 @@
   (let [next-id (or (some-> (rseq (:tasks state)) ffirst inc) 0)]
     (assoc-in state [:tasks next-id] (assoc task :id next-id))))
 
+(defn task-done? [task]
+  (#{:success :failed} (:status task)))
+
+(defn clean-tasks [state]
+  (reduce-kv (fn [state id task]
+               (cond-> state
+                 (task-done? task)
+                 (update :tasks dissoc id)))
+             state
+             (:tasks state)))
+
 (defn stringify-date [^Date date]
   (let [formatter (SimpleDateFormat. "HH:mm:ss")]
     (.format formatter date)))
