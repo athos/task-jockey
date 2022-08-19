@@ -111,3 +111,12 @@
                   task-handler
                   finished))
       task-handler)))
+
+(defn start-loop [state]
+  (future
+    (loop [handler (make-task-handler state)]
+      (Thread/sleep 200)
+      (-> handler
+          (handle-finished-tasks)
+          (spawn-new)
+          (recur)))))
