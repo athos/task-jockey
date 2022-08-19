@@ -48,9 +48,10 @@
 
 (defn spawn-new [task-handler]
   (locking (:state task-handler)
-    (if-let [id (next-task-id task-handler)]
-      (start-process task-handler id)
-      task-handler)))
+    (loop [handler task-handler]
+      (if-let [id (next-task-id handler)]
+        (recur (start-process handler id))
+        handler))))
 
 (defn handle-finished-tasks [task-handler]
   (let [finished (for [[group pool] (:children task-handler)
