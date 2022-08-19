@@ -1,7 +1,6 @@
 (ns task-jockey.task-jockey
   (:require [clojure.java.io :as io]
-            [clojure.pprint :as pp]
-            [clojure.string :as str])
+            [clojure.pprint :as pp])
   (:import [java.io File]
            [java.text SimpleDateFormat]
            [java.util Date]))
@@ -47,7 +46,7 @@
 
 (defn print-log [task]
   (printf "--- Task %d: %s ---\n" (:id task) (name (:status task)))
-  (println "Command:" (str/join (:command task)))
+  (println "Command:" (pr-str (:command task)))
   (println "  Start:" (stringify-date (:start task)))
   (println "    End:" (stringify-date (:end task)))
   (newline)
@@ -67,7 +66,7 @@
         tasks (->> (:tasks state)
                    (keep (fn [[_ task]]
                            (when (= (:group task) group-name)
-                             (cond-> (update task :command str/join)
+                             (cond-> (update task :command pr-str)
                                (:start task)
                                (update :start stringify-date)
                                (:end task)
@@ -105,7 +104,8 @@
   (let [task (get-in @(:state task-handler) [:tasks id])
         worker-id (next-group-worker task-handler (:group task))
         log-file (log-file-path id)
-        child (-> (ProcessBuilder. (:command task))
+        command (into-array String ["sh" "-c" (:command task)])
+        child (-> (ProcessBuilder. command)
                   (.redirectOutput log-file)
                   (.redirectError log-file)
                   (.start))]
