@@ -1,4 +1,8 @@
-(ns task-jockey.task-jockey)
+(ns task-jockey.task-jockey
+  (:require [clojure.pprint :as pp]
+            [clojure.string :as str])
+  (:import [java.text SimpleDateFormat]
+           [java.util Date]))
 
 (defn make-state []
   {:tasks (sorted-map)
@@ -15,6 +19,29 @@
 (defn add-task [state task]
   (let [next-id (or (some-> (rseq (:tasks state)) ffirst inc) 0)]
     (assoc-in state [:tasks next-id] (assoc task :id next-id))))
+
+(defn stringify-date [^Date date]
+  (let [formatter (SimpleDateFormat. "HH:mm:ss")]
+    (.format formatter date)))
+
+(defn print-single-group [state group-name]
+  (let [group (get-in state [:groups group-name])
+        tasks (->> (:tasks state)
+                   (keep (fn [[_ task]]
+                           (when (= (:group task) group-name)
+                             (cond-> (update task :command str/join)
+                               (:start task)
+                               (update :start stringify-date)
+                               (:end task)
+                               (update :end stringify-date)))))
+                   (sort-by :id))]
+    (printf "Group \"%s\" (%d parallel): " group-name (:parallel-tasks group))
+    (pp/print-table [:id :status :command :start :end] tasks)))
+
+(defn print-all-groups [state]
+  (->> (:groups state)
+       keys
+       (run! (partial print-single-group state))))
 
 (defn next-task-id [{:keys [children state]}]
   (->> (:tasks @state)
@@ -34,7 +61,7 @@
              first)
         (count pool))))
 
-(defn now [] (java.util.Date.))
+(defn now [] (Date.))
 
 (defn start-process [task-handler id]
   (let [task (get-in @(:state task-handler) [:tasks id])
