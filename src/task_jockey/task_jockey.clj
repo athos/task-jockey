@@ -51,3 +51,24 @@
     (if-let [id (next-task-id task-handler)]
       (start-process task-handler id)
       task-handler)))
+
+(defn handle-finished-tasks [task-handler]
+  (let [finished (for [[group pool] (:children task-handler)
+                       [worker {:keys [task ^Process child]}] pool
+                       :when (not (.isAlive child))]
+                   [group worker task (.exitValue child)])]
+    (if (seq finished)
+      (do (locking (:state task-handler)
+            (->> finished
+                 (reduce (fn [state [_ _ task code]]
+                           (update-in state [:tasks task] assoc
+                                      :status (if (= code 0) :success :failed)
+                                      :code code
+                                      :end (now)))
+                         @state)
+                 (vreset! state)))
+          (reduce (fn [handler [group worker _ _]]
+                    (update-in handler [:children group] dissoc worker))
+                  task-handler
+                  finished))
+      task-handler)))
