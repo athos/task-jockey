@@ -61,6 +61,21 @@
     (print-log task)
     (newline)))
 
+(defn follow-logs [state task-id]
+  (with-open [r (io/reader (log-file-path task-id))]
+    (let [buf (char-array 1024)]
+      (loop []
+        (if (.ready r)
+          (let [size (.read r buf)]
+            (.write *out* buf 0 size)
+            (recur))
+          (let [task (locking state
+                       (get-in @state [:tasks task-id]))]
+            (.flush *out*)
+            (when-not (task-done? task)
+              (Thread/sleep 1000)
+              (recur))))))))
+
 (defn print-single-group [state group-name]
   (let [group (get-in state [:groups group-name])
         tasks (->> (:tasks state)
