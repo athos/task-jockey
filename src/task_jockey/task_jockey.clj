@@ -37,22 +37,22 @@
 (defn log-file-path ^File [task-id]
   (io/file task-log-directory (str task-id ".log")))
 
-(defn read-log-file [task-id]
-  (slurp (log-file-path task-id)))
-
 (defn stringify-date [^Date date]
   (let [formatter (SimpleDateFormat. "HH:mm:ss")]
     (.format formatter date)))
 
 (defn print-log [task]
-  (printf "--- Task %d: %s ---\n" (:id task) (name (:status task)))
-  (println "Command:" (pr-str (:command task)))
-  (println "  Start:" (stringify-date (:start task)))
-  (println "    End:" (stringify-date (:end task)))
-  (newline)
-  (println "output:")
-  (print (read-log-file (:id task)))
-  (flush))
+  (let [log-file (log-file-path (:id task))]
+    (when (.exists log-file)
+      (printf "--- Task %d: %s ---\n" (:id task) (name (:status task)))
+      (println "Command:" (pr-str (:command task)))
+      (println "  Start:" (stringify-date (:start task)))
+      (when (:end task)
+        (println "    End:" (stringify-date (:end task))))
+      (newline)
+      (println "output:")
+      (print (slurp log-file))
+      (flush))))
 
 (defn print-logs [state task-ids]
   (doseq [[_ task] (:tasks state)
