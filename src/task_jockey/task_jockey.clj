@@ -206,6 +206,42 @@
       (Thread/sleep 200)
       (recur (step handler)))))
 
+(defn add [command]
+  (let [task {:command (name command)
+              :status :queued
+              :group "default"}]
+    (locking state
+      (vswap! state add-task task)
+      nil)))
+
+(defn status
+  ([]
+   (locking state
+     (print-all-groups @state)))
+  ([group]
+   (locking state
+     (print-single-group @state group))))
+
+(defn log
+  ([] (log #{}))
+  ([id-or-ids]
+   (let [task-ids (if (coll? id-or-ids) (set id-or-ids) #{id-or-ids})]
+     (locking state
+       (print-logs @state task-ids)))))
+
+(defn follow [id]
+  (follow-logs state id))
+
+(defn clean []
+  (locking state
+    (vswap! state clean-tasks)
+    nil))
+
+(defn parallel [n & {:keys [group] :or {group "default"}}]
+  (locking state
+    (vswap! state assoc-in [:groups group :parallel-tasks] n)
+    nil))
+
 (defn group [& {:keys [action name parallel-tasks]
               :or {action :list parallel-tasks 1}}]
   (case action
