@@ -49,6 +49,12 @@
           state
           task-ids))
 
+(defn enqueue-tasks [state task-ids]
+  (reduce (fn [state task-id]
+            (assoc-in state [:tasks task-id :status] :queued))
+          state
+          task-ids))
+
 (defn task-done? [task]
   (#{:success :failed} (:status task)))
 
@@ -244,6 +250,12 @@
   (let [task-ids (if (coll? id-or-ids) (set id-or-ids) #{id-or-ids})]
     (locking state
       (vswap! state stash-tasks task-ids)
+      nil)))
+
+(defn enqueue [id-or-ids]
+  (let [task-ids (if (coll? id-or-ids) (set id-or-ids) #{id-or-ids})]
+    (locking state
+      (vswap! state enqueue-tasks task-ids)
       nil)))
 
 (defn status
