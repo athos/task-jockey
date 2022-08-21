@@ -173,13 +173,13 @@
           (update task-handler :children dissoc (:name msg))))
     task-handler))
 
-(defn handle-finished-tasks [task-handler]
+(defn handle-finished-tasks [{:keys [state] :as task-handler}]
   (let [finished (for [[group pool] (:children task-handler)
                        [worker {:keys [task ^Process child]}] pool
                        :when (not (.isAlive child))]
                    [group worker task (.exitValue child)])]
     (if (seq finished)
-      (do (locking (:state task-handler)
+      (do (locking state
             (->> finished
                  (reduce (fn [state [_ _ task code]]
                            (update-in state [:tasks task] assoc
