@@ -264,13 +264,13 @@
     nil))
 
 (defn stash [id-or-ids]
-  (let [task-ids (if (coll? id-or-ids) (set id-or-ids) #{id-or-ids})]
+  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])]
     (locking state
       (vswap! state stash-tasks task-ids)
       nil)))
 
 (defn enqueue [id-or-ids]
-  (let [task-ids (if (coll? id-or-ids) (set id-or-ids) #{id-or-ids})]
+  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])]
     (locking state
       (vswap! state enqueue-tasks task-ids)
       nil)))
@@ -281,7 +281,7 @@
     nil))
 
 (defn restart [id-or-ids]
-  (let [task-ids (if (coll? id-or-ids) (set id-or-ids) #{id-or-ids})]
+  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])]
     (locking state
       (vswap! state restart-tasks task-ids)
       nil)))
@@ -297,7 +297,7 @@
 (defn log
   ([] (log #{}))
   ([id-or-ids]
-   (let [task-ids (if (coll? id-or-ids) (set id-or-ids) #{id-or-ids})]
+   (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])]
      (locking state
        (print-logs @state task-ids)))))
 
