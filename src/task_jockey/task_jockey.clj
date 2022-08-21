@@ -40,6 +40,9 @@
   (let [next-id (or (some-> (rseq (:tasks state)) ffirst inc) 0)]
     (assoc-in state [:tasks next-id] (assoc task :id next-id))))
 
+(defn edit-task [state task-id command]
+  (assoc-in state [:tasks task-id :command] command))
+
 (defn task-done? [task]
   (#{:success :failed} (:status task)))
 
@@ -225,6 +228,11 @@
     (locking state
       (vswap! state add-task task)
       nil)))
+
+(defn edit [task-id command]
+  (locking state
+    (vswap! state edit-task task-id command)
+    nil))
 
 (defn status
   ([]
