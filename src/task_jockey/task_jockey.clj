@@ -1,4 +1,5 @@
 (ns task-jockey.task-jockey
+  (:refer-clojure :exclude [send])
   (:require [clojure.java.io :as io]
             [clojure.pprint :as pp])
   (:import [java.io File]
@@ -170,7 +171,18 @@
       :group-remove
       (do (locking state
             (vswap! state update :groups dissoc (:name msg)))
-          (update task-handler :children dissoc (:name msg))))
+          (update task-handler :children dissoc (:name msg)))
+      :send
+      (let [{:keys [task-id input]} msg
+            child (->> (for [[_ pool] (:children task-handler)
+                             [_ {:keys [task child]}] pool
+                             :when (= task task-id)]
+                         child)
+                       first)]
+        (doto (.getOutputStream ^Process child)
+          (.write (.getBytes ^String input))
+          (.flush))
+        task-handler))
     task-handler))
 
 (defn handle-finished-tasks [{:keys [state] :as task-handler}]
@@ -231,6 +243,9 @@
 
 (defn follow [id]
   (follow-logs state id))
+
+(defn send [id input]
+  (push-message! message-queue {:action :send :task-id id :input input}))
 
 (defn clean []
   (locking state
