@@ -62,6 +62,16 @@
         (assoc-in [:tasks task-id1] (assoc task2 :id task-id1))
         (assoc-in [:tasks task-id2] (assoc task1 :id task-id2)))))
 
+(defn restart-tasks [state task-ids]
+  (reduce (fn [state task-id]
+            (let [task (get-in state [:tasks task-id])
+                  new-task (-> task
+                               (assoc :status :queued)
+                               (dissoc :id :start :end))]
+              (add-task state new-task)))
+          state
+          task-ids))
+
 (defn task-done? [task]
   (#{:success :failed} (:status task)))
 
@@ -269,6 +279,12 @@
   (locking state
     (vswap! state switch-tasks task-id1 task-id2)
     nil))
+
+(defn restart [id-or-ids]
+  (let [task-ids (if (coll? id-or-ids) (set id-or-ids) #{id-or-ids})]
+    (locking state
+      (vswap! state restart-tasks task-ids)
+      nil)))
 
 (defn status
   ([]
