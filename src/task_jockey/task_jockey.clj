@@ -7,17 +7,33 @@
 
 (def task-log-directory "task_logs")
 
+(def message-queue
+  (atom (clojure.lang.PersistentQueue/EMPTY)))
+
+(defn push-message! [queue msg]
+  (swap! queue conj msg)
+  nil)
+
+(defn pop-message! [queue]
+  (let [msg (volatile! nil)]
+    (swap! queue
+           (fn [queue]
+             (vreset! msg (first queue))
+             (pop queue)))
+    @msg))
+
 (defn make-state []
   {:tasks (sorted-map)
-   :groups {"default" {:parallel-tasks 1}}})
+   :groups {"default" {:parallel-tasks 1 :status :running}}})
 
 (def state (volatile! (make-state)))
 
-(defn make-task-handler [state]
+(defn make-task-handler [state queue]
   {:state state
+   :queue queue
    :children {"default" (sorted-map)}})
 
-(def task-handler (volatile! (make-task-handler state)))
+(def task-handler (volatile! (make-task-handler state message-queue)))
 
 (defn add-task [state task]
   (let [next-id (or (some-> (rseq (:tasks state)) ffirst inc) 0)]
@@ -76,6 +92,12 @@
               (Thread/sleep 1000)
               (recur))))))))
 
+(defn print-group-summary [group-name {:keys [status parallel-tasks]}]
+  (printf "Group \"%s\" (%d parallel): %s"
+          group-name
+          parallel-tasks
+          (name status)))
+
 (defn print-single-group [state group-name]
   (let [group (get-in state [:groups group-name])
         tasks (->> (:tasks state)
@@ -87,7 +109,7 @@
                                (:end task)
                                (update :end stringify-date)))))
                    (sort-by :id))]
-    (printf "Group \"%s\" (%d parallel): " group-name (:parallel-tasks group))
+    (print-group-summary group-name group)
     (pp/print-table [:id :status :command :start :end] tasks)))
 
 (defn print-all-groups [state]
@@ -136,6 +158,21 @@
         (recur (start-process handler id))
         handler))))
 
+(defn handle-messages [{:keys [state] :as task-handler}]
+  (if-let [msg (pop-message! (:queue task-handler))]
+    (case (:action msg)
+      :group-add
+      (do (locking state
+            (vswap! state assoc-in [:groups (:name msg)]
+                    {:parallel-tasks (:parallel-tasks msg)
+                     :status :running}))
+          (assoc-in task-handler [:children (:name msg)] (sorted-map)))
+      :group-remove
+      (do (locking state
+            (vswap! state update :groups dissoc (:name msg)))
+          (update task-handler :children dissoc (:name msg))))
+    task-handler))
+
 (defn handle-finished-tasks [task-handler]
   (let [finished (for [[group pool] (:children task-handler)
                        [worker {:keys [task ^Process child]}] pool
@@ -159,11 +196,25 @@
 
 (defn step [handler]
   (-> handler
+      (handle-messages)
       (handle-finished-tasks)
       (spawn-new)))
 
-(defn start-loop [state]
+(defn start-loop [state queue]
   (future
-    (loop [handler (make-task-handler state)]
+    (loop [handler (make-task-handler state queue)]
       (Thread/sleep 200)
       (recur (step handler)))))
+
+(defn group [& {:keys [action name parallel-tasks]
+              :or {action :list parallel-tasks 1}}]
+  (case action
+    :list (doseq [[name group] (locking state
+                                 (get @state :groups))]
+            (print-group-summary name group)
+            (newline))
+    :add (let [msg {:action :group-add :name name
+                    :parallel-tasks parallel-tasks}]
+           (push-message! message-queue msg))
+    :remove (let [msg {:action :group-remove :name name}]
+              (push-message! message-queue msg))))
