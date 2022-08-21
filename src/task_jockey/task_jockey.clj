@@ -55,6 +55,13 @@
           state
           task-ids))
 
+(defn switch-tasks [state task-id1 task-id2]
+  (let [task1 (get-in state [:tasks task-id1])
+        task2 (get-in state [:tasks task-id2])]
+    (-> state
+        (assoc-in [:tasks task-id1] (assoc task2 :id task-id1))
+        (assoc-in [:tasks task-id2] (assoc task1 :id task-id2)))))
+
 (defn task-done? [task]
   (#{:success :failed} (:status task)))
 
@@ -257,6 +264,11 @@
     (locking state
       (vswap! state enqueue-tasks task-ids)
       nil)))
+
+(defn switch [task-id1 task-id2]
+  (locking state
+    (vswap! state switch-tasks task-id1 task-id2)
+    nil))
 
 (defn status
   ([]
