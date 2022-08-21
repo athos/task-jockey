@@ -10,4 +10,4 @@ FIXME
 
 Copyright © 2022 Shogo Ohta
 
-Distributed under the Eclipse Public License version 1.0.
+Distributed under the MIT License. See LICENSE for details.
