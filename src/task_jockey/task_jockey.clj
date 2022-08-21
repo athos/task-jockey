@@ -43,6 +43,12 @@
 (defn edit-task [state task-id command]
   (assoc-in state [:tasks task-id :command] command))
 
+(defn stash-tasks [state task-ids]
+  (reduce (fn [state task-id]
+            (assoc-in state [:tasks task-id :status] :stashed))
+          state
+          task-ids))
+
 (defn task-done? [task]
   (#{:success :failed} (:status task)))
 
@@ -233,6 +239,12 @@
   (locking state
     (vswap! state edit-task task-id command)
     nil))
+
+(defn stash [id-or-ids]
+  (let [task-ids (if (coll? id-or-ids) (set id-or-ids) #{id-or-ids})]
+    (locking state
+      (vswap! state stash-tasks task-ids)
+      nil)))
 
 (defn status
   ([]
