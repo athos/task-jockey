@@ -73,7 +73,7 @@
           task-ids))
 
 (defn task-done? [task]
-  (#{:success :failed} (:status task)))
+  (#{:success :failed :killed} (:status task)))
 
 (defn clean-tasks [state]
   (reduce-kv (fn [state id task]
@@ -214,6 +214,18 @@
         (doto (.getOutputStream ^Process child)
           (.write (.getBytes ^String input))
           (.flush))
+        task-handler)
+      :kill
+      (locking state
+        (doseq [task-id (:task-ids msg)
+                :let [child (->> (for [[_ pool] (:children task-handler)
+                                       [_ {:keys [task child]}] pool
+                                       :when (= task-id task)]
+                                   child)
+                                 first)]]
+          (vswap! state update-in [:tasks task-id] assoc
+                  :status :killed :end (now))
+          (.destroy ^Process child))
         task-handler))
     task-handler))
 
@@ -226,10 +238,13 @@
       (do (locking state
             (->> finished
                  (reduce (fn [state [_ _ task code]]
-                           (update-in state [:tasks task] assoc
-                                      :status (if (= code 0) :success :failed)
-                                      :code code
-                                      :end (now)))
+                           (cond-> state
+                             (not= (:status (get-in state [:tasks task]))
+                                   :killed)
+                             (update-in [:tasks task] assoc
+                                        :status (if (= code 0) :success :failed)
+                                        :code code
+                                        :end (now))))
                          @state)
                  (vreset! state)))
           (reduce (fn [handler [group worker _ _]]
@@ -311,6 +326,11 @@
   (locking state
     (vswap! state clean-tasks)
     nil))
+
+(defn kill [id-or-ids]
+  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
+        msg {:action :kill :task-ids task-ids}]
+    (push-message! message-queue msg)))
 
 (defn parallel [n & {:keys [group] :or {group "default"}}]
   (locking state
