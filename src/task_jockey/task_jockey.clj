@@ -273,7 +273,7 @@
         task {:command (name command)
               :status :queued
               :group "default"
-              :path (.getAbsolutePath (io/file work-dir))}]
+              :path (.getCanonicalPath (io/file work-dir))}]
     (locking state
       (vswap! state add-task task)
       nil)))
