@@ -105,11 +105,12 @@
       (flush))))
 
 (defn print-logs [state task-ids]
-  (doseq [[_ task] (:tasks state)
-          :when (or (empty? task-ids)
-                    (contains? task-ids (:id task)))]
-    (print-log task)
-    (newline)))
+  (let [ids (set task-ids)]
+    (doseq [[_ task] (:tasks state)
+            :when (or (empty? ids)
+                      (contains? ids (:id task)))]
+      (print-log task)
+      (newline))))
 
 (defn follow-logs [state task-id]
   (with-open [r (io/reader (log-file-path task-id))]
