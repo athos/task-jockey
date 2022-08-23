@@ -95,6 +95,7 @@
     (when (.exists log-file)
       (printf "--- Task %d: %s ---\n" (:id task) (name (:status task)))
       (println "Command:" (pr-str (:command task)))
+      (println "   Path:" (:path task))
       (println "  Start:" (stringify-date (:start task)))
       (when (:end task)
         (println "    End:" (stringify-date (:end task))))
@@ -143,7 +144,7 @@
                                (update :end stringify-date)))))
                    (sort-by :id))]
     (print-group-summary group-name group)
-    (pp/print-table [:id :status :command :start :end] tasks)))
+    (pp/print-table [:id :status :command :path :start :end] tasks)))
 
 (defn print-all-groups [state]
   (->> (:groups state)
@@ -175,9 +176,10 @@
         worker-id (next-group-worker task-handler (:group task))
         log-file (log-file-path id)
         command (into-array String ["sh" "-c" (:command task)])
-        child (-> (ProcessBuilder. command)
+        child (-> (ProcessBuilder. ^"[Ljava.lang.String;" command)
                   (.redirectOutput log-file)
                   (.redirectError log-file)
+                  (.directory (io/file (:path task)))
                   (.start))]
     (vswap! (:state task-handler) update-in [:tasks id]
             assoc :status :running :start (now))
@@ -265,10 +267,12 @@
       (Thread/sleep 200)
       (recur (step handler)))))
 
-(defn add [command]
-  (let [task {:command (name command)
+(defn add [command & {:keys [work-dir]}]
+  (let [work-dir (or work-dir (System/getProperty "user.dir"))
+        task {:command (name command)
               :status :queued
-              :group "default"}]
+              :group "default"
+              :path work-dir}]
     (locking state
       (vswap! state add-task task)
       nil)))
