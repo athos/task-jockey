@@ -94,7 +94,7 @@
   (let [log-file (log-file-path (:id task))]
     (when (.exists log-file)
       (printf "--- Task %d: %s ---\n" (:id task) (name (:status task)))
-      (println "Command:" (pr-str (:command task)))
+      (println "Command:" (:command task))
       (println "   Path:" (:path task))
       (println "  Start:" (stringify-date (:start task)))
       (when (:end task)
@@ -138,7 +138,7 @@
         tasks (->> (:tasks state)
                    (keep (fn [[_ task]]
                            (when (= (:group task) group-name)
-                             (cond-> (update task :command pr-str)
+                             (cond-> task
                                (:start task)
                                (update :start stringify-date)
                                (:end task)
