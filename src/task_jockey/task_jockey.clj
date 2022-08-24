@@ -158,7 +158,10 @@
                  (and (= (:status task) :queued)
                       (let [running-tasks (get children group)]
                         (< (count running-tasks)
-                           (get-in @state [:groups group :parallel-tasks]))))))
+                           (get-in @state [:groups group :parallel-tasks])))
+                      (let [deps (:dependencies task)]
+                        (or (empty? deps)
+                            (every? #(task-done? (get (:tasks @state) %)) deps))))))
        ffirst))
 
 (defn next-group-worker [{:keys [children]} group]
@@ -268,12 +271,13 @@
       (Thread/sleep 200)
       (recur (step handler)))))
 
-(defn add [command & {:keys [work-dir]}]
+(defn add [command & {:keys [work-dir after]}]
   (let [work-dir (or work-dir (System/getProperty "user.dir"))
         task {:command (name command)
               :status :queued
               :group "default"
-              :path (.getCanonicalPath (io/file work-dir))}]
+              :path (.getCanonicalPath (io/file work-dir))
+              :dependencies after}]
     (locking state
       (vswap! state add-task task)
       nil)))
