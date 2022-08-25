@@ -95,3 +95,17 @@
            (queue/push-message! system/message-queue msg))
     :remove (let [msg {:action :group-remove :name name}]
               (queue/push-message! system/message-queue msg))))
+
+(def running-loop nil)
+
+(defn start-loop []
+  (let [fut (future (handler/start-loop system/state
+                                        system/message-queue))]
+    (alter-var-root #'running-loop (constantly fut))))
+
+(defn stop-loop []
+  (alter-var-root #'running-loop
+                  (fn [fut]
+                    (when fut
+                      (future-cancel fut)
+                      nil))))
