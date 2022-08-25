@@ -75,10 +75,23 @@
 (defn task-done? [task]
   (#{:success :failed :killed} (:status task)))
 
+(defn task-removable? [{:keys [tasks] :as state} to-be-deleted task-id]
+  (let [dependants (into #{}
+                         (keep (fn [[id task']]
+                                 (when (and (contains? (:dependencies task')
+                                                       task-id)
+                                            (not (task-done? (get tasks id))))
+                                   id)))
+                         tasks)]
+    (or (empty? dependants)
+        (and (empty? (apply disj dependants to-be-deleted))
+             (every? (partial task-removable? state to-be-deleted) dependants)))))
+
 (defn clean-tasks [state]
   (reduce-kv (fn [state id task]
                (cond-> state
-                 (task-done? task)
+                 (and (task-done? task)
+                      (task-removable? state #{} id))
                  (update :tasks dissoc id)))
              state
              (:tasks state)))
@@ -277,7 +290,7 @@
               :status :queued
               :group "default"
               :path (.getCanonicalPath (io/file work-dir))
-              :dependencies after}]
+              :dependencies (set after)}]
     (locking state
       (vswap! state add-task task)
       nil)))
