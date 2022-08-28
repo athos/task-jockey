@@ -1,22 +1,24 @@
 (ns task-jockey.repl
   (:refer-clojure :exclude [send])
   (:require [clojure.java.io :as io]
+            [task-jockey.client :as client]
             [task-jockey.log :as log]
             [task-jockey.message-queue :as queue]
+            [task-jockey.server :as server]
             [task-jockey.state :as state]
             [task-jockey.system-state :as system]
             [task-jockey.task-handler :as handler]))
 
+(def system nil)
+
 (defn add [command & {:keys [work-dir after]}]
   (let [work-dir (or work-dir (System/getProperty "user.dir"))
-        task {:command (name command)
-              :status :queued
-              :group "default"
-              :path (.getCanonicalPath (io/file work-dir))
-              :dependencies (set after)}]
-    (locking system/state
-      (vswap! system/state state/add-task task)
-      nil)))
+        msg {:type :add
+             :command (name command)
+             :path (.getCanonicalPath (io/file work-dir))
+             :dependencies (set after)}
+        res (client/send-and-recv (:client system) msg)]
+    (println (:message res))))
 
 (defn edit [task-id command]
   (locking system/state
@@ -96,16 +98,23 @@
     :remove (let [msg {:action :group-remove :name name}]
               (queue/push-message! system/message-queue msg))))
 
-(def running-loop nil)
+(defn start-system [& {:keys [host port]
+                       :or {host "localhost" port 5555}
+                       :as opts}]
+  (let [opts' (assoc opts :host host :port port)
+        fut (future (handler/start-loop system/state
+                                        system/message-queue))
+        server (server/start-server opts')
+        client (client/make-client opts')]
+    (alter-var-root #'system
+                    (constantly {:loop fut :server server :client client}))
+    nil))
 
-(defn start-loop []
-  (let [fut (future (handler/start-loop system/state
-                                        system/message-queue))]
-    (alter-var-root #'running-loop (constantly fut))))
-
-(defn stop-loop []
-  (alter-var-root #'running-loop
-                  (fn [fut]
-                    (when fut
-                      (future-cancel fut)
+(defn stop-system []
+  (alter-var-root #'system
+                  (fn [system]
+                    (when system
+                      (.close (:client system))
+                      (server/stop-server (:server system))
+                      (future-cancel (:loop system))
                       nil))))
