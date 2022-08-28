@@ -20,6 +20,17 @@
         res (client/send-and-recv (:client system) msg)]
     (println (:message res))))
 
+(defn status [& {:keys [group]}]
+  (let [res (client/send-and-recv (:client system) {:type :status})]
+    (when (= (:type res) :status-response)
+      (if group
+        (state/print-single-group (:status res) group)
+        (state/print-all-groups (:status res))))))
+
+(defn clean []
+  (let [res (client/send-and-recv (:client system) {:type :clean})]
+    (println (:message res))))
+
 (defn edit [task-id command]
   (locking system/state
     (vswap! system/state state/edit-task task-id command)
@@ -48,14 +59,6 @@
       (vswap! system/state state/restart-tasks task-ids)
       nil)))
 
-(defn status
-  ([]
-   (locking system/state
-     (state/print-all-groups @system/state)))
-  ([group]
-   (locking system/state
-     (state/print-single-group @system/state group))))
-
 (defn log
   ([] (log #{}))
   ([id-or-ids]
@@ -69,11 +72,6 @@
 (defn send [id input]
   (queue/push-message! system/message-queue
                        {:action :send :task-id id :input input}))
-
-(defn clean []
-  (locking system/state
-    (vswap! system/state state/clean-tasks)
-    nil))
 
 (defn kill [id-or-ids]
   (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])

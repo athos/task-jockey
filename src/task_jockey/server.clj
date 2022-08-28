@@ -42,3 +42,14 @@
     (locking system/state
       (vswap! system/state state/add-task task))
     (success "New task added.")))
+
+(defmethod handle-message :status [_]
+  (let [state (locking system/state
+                @system/state)]
+    {:type :status-response
+     :status state}))
+
+(defmethod handle-message :clean [_]
+  (locking system/state
+    (vswap! system/state state/clean-tasks))
+  (success "All finished tasks have been removed"))
