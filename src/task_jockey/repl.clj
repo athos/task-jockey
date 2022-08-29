@@ -69,19 +69,21 @@
 (defn follow [id]
   (log/follow-logs system/state id))
 
-(defn send [id input]
-  (queue/push-message! system/message-queue
-                       {:action :send :task-id id :input input}))
+(defn send [task-id input]
+  (let [msg {:type :send, :task-id task-id, :input input}
+        res (client/send-and-recv (:client system) msg)]
+    (println (:message res))))
 
 (defn kill [id-or-ids]
   (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
-        msg {:action :kill :task-ids task-ids}]
-    (queue/push-message! system/message-queue msg)))
+        msg {:type :kill, :task-ids task-ids}
+        res (client/send-and-recv (:client system) msg)]
+    (println (:message res))))
 
 (defn parallel [n & {:keys [group] :or {group "default"}}]
-  (locking system/state
-    (vswap! system/state assoc-in [:groups group :parallel-tasks] n)
-    nil))
+  (let [msg {:type :parallel, :group group, :parallel-tasks n}
+        res (client/send-and-recv (:client system) msg)]
+    (println (:message res))))
 
 (defn group [& {:keys [action name parallel-tasks]
               :or {action :list parallel-tasks 1}}]

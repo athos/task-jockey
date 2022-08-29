@@ -1,6 +1,7 @@
 (ns task-jockey.server
   (:require [clojure.core.server :as server]
             [clojure.edn :as edn]
+            [task-jockey.message-queue :as queue]
             [task-jockey.state :as state]
             [task-jockey.system-state :as system]))
 
@@ -78,3 +79,19 @@
   (locking system/state
     (vswap! system/state state/edit-task task-id command))
   (success "Command has been updated"))
+
+(defmethod handle-message :parallel [{:keys [group parallel-tasks]}]
+  (locking system/state
+    (vswap! system/state assoc-in
+            [:groups group :parallel-tasks] parallel-tasks))
+  (success (format "Parallel tasks setting for group \"%s\" adjusted" group)))
+
+(defmethod handle-message :send [{:keys [task-id input]}]
+  (let [msg {:action :send :task-id task-id :input input}]
+    (queue/push-message! system/message-queue msg)
+    (success "Message is being send to the process")))
+
+(defmethod handle-message :kill [{:keys [task-ids]}]
+  (let [msg {:action :kill :task-ids task-ids}]
+    (queue/push-message! system/message-queue msg)
+    (success "Tasks are being killed")))
