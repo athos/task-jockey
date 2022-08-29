@@ -53,3 +53,28 @@
   (locking system/state
     (vswap! system/state state/clean-tasks))
   (success "All finished tasks have been removed"))
+
+(defmethod handle-message :stash [{:keys [task-ids]}]
+  (locking system/state
+    (vswap! system/state state/stash-tasks task-ids))
+  (success "Tasks are stashed"))
+
+(defmethod handle-message :enqueue [{:keys [task-ids]}]
+  (locking system/state
+    (vswap! system/state state/enqueue-tasks task-ids))
+  (success "Tasks are enqueued"))
+
+(defmethod handle-message :switch [{:keys [task-id1 task-id2]}]
+  (locking system/state
+    (vswap! system/state state/switch-tasks task-id1 task-id2))
+  (success "Tasks have been switched"))
+
+(defmethod handle-message :restart [{:keys [task-ids]}]
+  (locking system/state
+    (vswap! system/state state/restart-tasks task-ids))
+  (success "Tasks restarted"))
+
+(defmethod handle-message :edit [{:keys [task-id command]}]
+  (locking system/state
+    (vswap! system/state state/edit-task task-id command))
+  (success "Command has been updated"))

@@ -31,33 +31,33 @@
   (let [res (client/send-and-recv (:client system) {:type :clean})]
     (println (:message res))))
 
-(defn edit [task-id command]
-  (locking system/state
-    (vswap! system/state state/edit-task task-id command)
-    nil))
-
 (defn stash [id-or-ids]
-  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])]
-    (locking system/state
-      (vswap! system/state state/stash-tasks task-ids)
-      nil)))
+  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
+        msg {:type :stash, :task-ids task-ids}
+        res (client/send-and-recv (:client system) msg)]
+    (println (:message res))))
 
 (defn enqueue [id-or-ids]
-  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])]
-    (locking system/state
-      (vswap! system/state state/enqueue-tasks task-ids)
-      nil)))
+  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
+        msg {:type :enqueue, :task-ids task-ids}
+        res (client/send-and-recv (:client system) msg)]
+    (println (:message res))))
 
 (defn switch [task-id1 task-id2]
-  (locking system/state
-    (vswap! system/state state/switch-tasks task-id1 task-id2)
-    nil))
+  (let [msg {:type :switch, :task-id1 task-id1, :task-id2 task-id2}
+        res (client/send-and-recv (:client system) msg)]
+    (println (:message res))))
 
 (defn restart [id-or-ids]
-  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])]
-    (locking system/state
-      (vswap! system/state state/restart-tasks task-ids)
-      nil)))
+  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
+        msg {:type :restart, :task-ids task-ids}
+        res (client/send-and-recv (:client system) msg)]
+    (println (:message res))))
+
+(defn edit [task-id command]
+  (let [msg {:type :edit, :task-id task-id, :command command}
+        res (client/send-and-recv (:client system) msg)]
+    (println (:message res))))
 
 (defn log
   ([] (log #{}))
