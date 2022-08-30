@@ -9,28 +9,29 @@
 (defn log-file-path ^File [task-id]
   (io/file task-log-directory (str task-id ".log")))
 
-(defn print-log [task]
-  (let [log-file (log-file-path (:id task))]
-    (when (.exists log-file)
-      (printf "--- Task %d: %s ---\n" (:id task) (name (:status task)))
-      (println "Command:" (:command task))
-      (println "   Path:" (:path task))
-      (when (:start task)
-        (println "  Start:" (utils/stringify-date (:start task))))
-      (when (:end task)
-        (println "    End:" (utils/stringify-date (:end task))))
-      (newline)
-      (println "output:")
-      (print (slurp log-file))
-      (flush))))
+(defn read-log-file [task-id]
+  (slurp (log-file-path task-id)))
 
-(defn print-logs [state task-ids]
-  (let [ids (set task-ids)]
-    (doseq [[_ task] (:tasks state)
-            :when (or (empty? ids)
-                      (contains? ids (:id task)))]
-      (print-log task)
-      (newline))))
+(defn print-log [task output]
+  (printf "--- Task %d: %s ---\n" (:id task) (name (:status task)))
+  (println "Command:" (:command task))
+  (println "   Path:" (:path task))
+  (when (:start task)
+    (println "  Start:" (utils/stringify-date (:start task))))
+  (when (:end task)
+    (println "    End:" (utils/stringify-date (:end task))))
+  (newline)
+  (println "output:")
+  (print output)
+  (flush))
+
+(defn print-logs [tasks task-ids]
+  (doseq [id (if (empty? task-ids)
+               (keys tasks)
+               task-ids)
+          :let [{:keys [task output]} (get tasks id)]]
+    (print-log task output)
+    (newline)))
 
 (defn follow-logs [state task-id]
   (with-open [r (io/reader (log-file-path task-id))]

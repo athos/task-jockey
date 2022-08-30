@@ -1,6 +1,7 @@
 (ns task-jockey.server
   (:require [clojure.core.server :as server]
             [clojure.edn :as edn]
+            [task-jockey.log :as log]
             [task-jockey.message-queue :as queue]
             [task-jockey.state :as state]
             [task-jockey.system-state :as system]))
@@ -85,6 +86,21 @@
     (vswap! system/state assoc-in
             [:groups group :parallel-tasks] parallel-tasks))
   (success (format "Parallel tasks setting for group \"%s\" adjusted" group)))
+
+(defmethod handle-message :log-request [{:keys [task-ids]}]
+  (let [task-ids (set task-ids)
+        state (locking system/state @system/state)
+        tasks (reduce-kv (fn [ret id task]
+                           (if (or (empty? task-ids)
+                                   (contains? task-ids id))
+                             (let [output (log/read-log-file id)
+                                   task-log {:task task
+                                             :output output}]
+                               (assoc ret id task-log))
+                             ret))
+                         {}
+                         (:tasks state))]
+    {:type :log-response, :tasks tasks}))
 
 (defmethod handle-message :send [{:keys [task-id input]}]
   (let [msg {:type :send :task-id task-id :input input}]

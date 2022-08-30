@@ -60,11 +60,12 @@
     (println (:message res))))
 
 (defn log
-  ([] (log #{}))
+  ([] (log []))
   ([id-or-ids]
-   (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])]
-     (locking system/state
-       (log/print-logs @system/state task-ids)))))
+   (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
+         msg {:type :log-request, :task-ids task-ids}
+         res (client/send-and-recv (:client system) msg)]
+     (log/print-logs (:tasks res) task-ids))))
 
 (defn follow [id]
   (log/follow-logs system/state id))
