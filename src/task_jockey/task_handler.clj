@@ -57,7 +57,7 @@
 
 (defn- handle-messages [{:keys [state] :as task-handler}]
   (if-let [msg (queue/pop-message! (:queue task-handler))]
-    (case (:action msg)
+    (case (:type msg)
       :group-add
       (do (locking state
             (vswap! state assoc-in [:groups (:name msg)]

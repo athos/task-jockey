@@ -87,12 +87,12 @@
   (success (format "Parallel tasks setting for group \"%s\" adjusted" group)))
 
 (defmethod handle-message :send [{:keys [task-id input]}]
-  (let [msg {:action :send :task-id task-id :input input}]
+  (let [msg {:type :send :task-id task-id :input input}]
     (queue/push-message! system/message-queue msg)
     (success "Message is being send to the process")))
 
 (defmethod handle-message :kill [{:keys [task-ids]}]
-  (let [msg {:action :kill :task-ids task-ids}]
+  (let [msg {:type :kill :task-ids task-ids}]
     (queue/push-message! system/message-queue msg)
     (success "Tasks are being killed")))
 
@@ -102,12 +102,12 @@
     {:type :group-response, :groups groups}))
 
 (defmethod handle-message :group-add [{:keys [name parallel-tasks]}]
-  (let [msg {:action :group-add, :name name,
+  (let [msg {:type :group-add, :name name,
              :parallel-tasks (or parallel-tasks 1)}]
     (queue/push-message! system/message-queue msg)
     (success (format "Group \"%s\" is being created" name))))
 
 (defmethod handle-message :group-remove [{:keys [name]}]
-  (let [msg {:action :group-remove :name name}]
+  (let [msg {:type :group-remove :name name}]
     (queue/push-message! system/message-queue msg)
     (success (format "Group \"%s\" is being removed" name))))
