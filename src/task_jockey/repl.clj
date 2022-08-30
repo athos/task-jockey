@@ -85,18 +85,21 @@
         res (client/send-and-recv (:client system) msg)]
     (println (:message res))))
 
-(defn group [& {:keys [action name parallel-tasks]
-              :or {action :list parallel-tasks 1}}]
-  (case action
-    :list (doseq [[name group] (locking system/state
-                                 (get @system/state :groups))]
-            (state/print-group-summary name group)
-            (newline))
-    :add (let [msg {:action :group-add :name name
-                    :parallel-tasks parallel-tasks}]
-           (queue/push-message! system/message-queue msg))
-    :remove (let [msg {:action :group-remove :name name}]
-              (queue/push-message! system/message-queue msg))))
+(defn groups []
+  (let [res (client/send-and-recv (:client system)  {:type :group-list})]
+    (doseq [[name group] (:groups res)]
+      (state/print-group-summary name group)
+      (newline))))
+
+(defn group-add [name & {:keys [parallel-tasks]}]
+  (let [msg {:type :group-add, :name name, :parallel-tasks parallel-tasks}
+        res (client/send-and-recv (:client system) msg)]
+    (println (:message res))))
+
+(defn group-remove [name]
+  (let [msg {:type :group-remove, :name name}
+        res (client/send-and-recv (:client system) msg)]
+    (println (:message res))))
 
 (defn start-system [& {:keys [host port]
                        :or {host "localhost" port 5555}

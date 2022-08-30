@@ -95,3 +95,19 @@
   (let [msg {:action :kill :task-ids task-ids}]
     (queue/push-message! system/message-queue msg)
     (success "Tasks are being killed")))
+
+(defmethod handle-message :group-list [_]
+  (let [groups (locking system/state
+                 (get @system/state :groups))]
+    {:type :group-response, :groups groups}))
+
+(defmethod handle-message :group-add [{:keys [name parallel-tasks]}]
+  (let [msg {:action :group-add, :name name,
+             :parallel-tasks (or parallel-tasks 1)}]
+    (queue/push-message! system/message-queue msg)
+    (success (format "Group \"%s\" is being created" name))))
+
+(defmethod handle-message :group-remove [{:keys [name]}]
+  (let [msg {:action :group-remove :name name}]
+    (queue/push-message! system/message-queue msg)
+    (success (format "Group \"%s\" is being removed" name))))
