@@ -10,11 +10,15 @@
 
 (defmulti handle-message :type)
 
+(def send-message prn)
+(defn recv-message []
+  (edn/read {:eof nil} *in*))
+
 (defn accept []
   (loop []
-    (when-let [msg (edn/read {:eof nil} *in*)]
+    (when-let [msg (recv-message)]
       (let [resp (handle-message msg)]
-        (prn resp)
+        (send-message resp)
         (recur)))))
 
 (defn start-server [{:keys [host port] :as opts}]
