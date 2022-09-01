@@ -15,13 +15,72 @@
         out (io/writer (.getOutputStream socket))]
     (->Client socket in out)))
 
-(defn send [client msg]
+(defn send-message [client msg]
   (binding [*out* (:out client)]
     (prn msg)))
 
-(defn recv [client]
+(defn recv-message [client]
   (edn/read {:eof nil} (:in client)))
 
-(defn send-and-recv [client msg]
-  (send client msg)
-  (recv client))
+(defn send-and-recv [client type & fields]
+  (let [msg (apply array-map :type type fields)]
+    (send-message client msg)
+    (recv-message client)))
+
+(defn add [client command path after]
+  (send-and-recv client :add
+                 :command command
+                 :path path
+                 :dependencies (set after)))
+
+(defn status [client]
+  (send-and-recv client :status))
+
+(defn clean [client]
+  (send-and-recv client :clean))
+
+(defn stash [client task-ids]
+  (send-and-recv client :stash :task-ids task-ids))
+
+(defn enqueue [client task-ids]
+  (send-and-recv client :enqueue :task-ids task-ids))
+
+(defn switch [client task-id1 task-id2]
+  (send-and-recv client :switch
+                 :task-id1 task-id1
+                 :task-id2 task-id2))
+
+(defn restart [client task-ids]
+  (send-and-recv client :restart :task-ids task-ids))
+
+(defn edit [client task-id command]
+  (send-and-recv client :edit
+                 :task-id task-id
+                 :command command))
+
+(defn log [client task-ids]
+  (send-and-recv client :log-request :task-ids task-ids))
+
+(defn send [client task-id input]
+  (send-and-recv client :send
+                 :task-id task-id
+                 :input input))
+
+(defn kill [client task-ids]
+  (send-and-recv client :kill :task-ids task-ids))
+
+(defn parallel [client group parallel-tasks]
+  (send-and-recv client :parallel
+                 :group group
+                 :parallel-tasks parallel-tasks))
+
+(defn groups [client]
+  (send-and-recv client :group-list))
+
+(defn group-add [client name parallel-tasks]
+  (send-and-recv client :group-add
+                 :name name
+                 :parallel-tasks parallel-tasks))
+
+(defn group-remove [client name]
+  (send-and-recv client :group-remove :name name))
