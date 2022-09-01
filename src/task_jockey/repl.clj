@@ -3,7 +3,6 @@
   (:require [clojure.java.io :as io]
             [task-jockey.client :as client]
             [task-jockey.log :as log]
-            [task-jockey.message-queue :as queue]
             [task-jockey.server :as server]
             [task-jockey.state :as state]
             [task-jockey.system-state :as system]
