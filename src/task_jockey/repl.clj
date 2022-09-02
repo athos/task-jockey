@@ -68,7 +68,7 @@
 
 (defn kill [id-or-ids]
   (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
-        res (client/send-and-recv (:client system) task-ids)]
+        res (client/kill (:client system) task-ids)]
     (println (:message res))))
 
 (defn parallel [n & {:keys [group] :or {group "default"}}]
