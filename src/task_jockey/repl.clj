@@ -1,7 +1,6 @@
 (ns task-jockey.repl
   (:refer-clojure :exclude [send])
-  (:require [clojure.java.io :as io]
-            [task-jockey.client :as client]
+  (:require [task-jockey.client :as client]
             [task-jockey.log :as log]
             [task-jockey.server :as server]
             [task-jockey.state :as state]
@@ -11,11 +10,7 @@
 (def system nil)
 
 (defn add [command & {:keys [work-dir after]}]
-  (let [work-dir (or work-dir (System/getProperty "user.dir"))
-        res (client/add (:client system)
-                        (name command)
-                        (.getCanonicalPath (io/file work-dir))
-                        (set after))]
+  (let [res (client/add (:client system) (name command) work-dir after)]
     (println (:message res))))
 
 (defn status [& {:keys [group]}]

@@ -28,10 +28,11 @@
     (recv-message client)))
 
 (defn add [client command path after]
-  (send-and-recv client :add
-                 :command command
-                 :path path
-                 :dependencies (set after)))
+  (let [path (or path (System/getProperty "user.dir"))]
+    (send-and-recv client :add
+                   :command command
+                   :path (.getCanonicalPath (io/file path))
+                   :dependencies (set after))))
 
 (defn status [client]
   (send-and-recv client :status))
