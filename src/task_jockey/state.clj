@@ -83,7 +83,9 @@
                                (update :end utils/stringify-date)))))
                    (sort-by :id))]
     (print-group-summary group-name group)
-    (pp/print-table [:id :status :command :path :start :end] tasks)))
+    (if (empty? tasks)
+      (newline)
+      (pp/print-table [:id :status :command :path :start :end] tasks))))
 
 (defn print-all-groups [state]
   (->> (:groups state)
