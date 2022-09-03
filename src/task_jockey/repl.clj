@@ -83,7 +83,7 @@
     (println (:message res))))
 
 (defn group-remove [name]
-  (let [res (client/send-and-recv (:client system) name)]
+  (let [res (client/group-remove (:client system) name)]
     (println (:message res))))
 
 (defn start-system [& {:keys [host port]
