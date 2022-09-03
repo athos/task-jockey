@@ -22,8 +22,8 @@
         (state/print-all-groups (:status res))))))
 
 (defn clean []
-  (let [res (client/clean (:client system))]
-    (println (:message res))))
+  (client/clean (:client system))
+  nil)
 
 (defn stash [id-or-ids]
   (let [task-ids (utils/->coll id-or-ids)
@@ -45,8 +45,8 @@
     (println (:message res))))
 
 (defn edit [task-id command]
-  (let [res (client/edit (:client system) task-id command)]
-    (println (:message res))))
+  (client/edit (:client system) task-id command)
+  nil)
 
 (defn log
   ([] (log []))
@@ -59,8 +59,8 @@
   (log/follow-logs system/state id))
 
 (defn send [task-id input]
-  (let [res (client/send (:client system) task-id input)]
-    (println (:message res))))
+  (client/send (:client system) task-id input)
+  nil)
 
 (defn kill [id-or-ids]
   (let [task-ids (utils/->coll id-or-ids)
