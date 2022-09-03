@@ -5,7 +5,8 @@
             [task-jockey.server :as server]
             [task-jockey.state :as state]
             [task-jockey.system-state :as system]
-            [task-jockey.task-handler :as handler]))
+            [task-jockey.task-handler :as handler]
+            [task-jockey.utils :as utils]))
 
 (def system nil)
 
@@ -25,12 +26,12 @@
     (println (:message res))))
 
 (defn stash [id-or-ids]
-  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
+  (let [task-ids (utils/->coll id-or-ids)
         res (client/stash (:client system) task-ids)]
     (println (:message res))))
 
 (defn enqueue [id-or-ids]
-  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
+  (let [task-ids (utils/->coll id-or-ids)
         res (client/enqueue (:client system) task-ids)]
     (println (:message res))))
 
@@ -39,7 +40,7 @@
     (println (:message res))))
 
 (defn restart [id-or-ids]
-  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
+  (let [task-ids (utils/->coll id-or-ids)
         res (client/restart (:client system) task-ids)]
     (println (:message res))))
 
@@ -50,7 +51,7 @@
 (defn log
   ([] (log []))
   ([id-or-ids]
-   (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
+   (let [task-ids (utils/->coll id-or-ids)
          res (client/log (:client system) task-ids)]
      (log/print-logs (:tasks res) task-ids))))
 
@@ -62,7 +63,7 @@
     (println (:message res))))
 
 (defn kill [id-or-ids]
-  (let [task-ids (if (coll? id-or-ids) (vec id-or-ids) [id-or-ids])
+  (let [task-ids (utils/->coll id-or-ids)
         res (client/kill (:client system) task-ids)]
     (println (:message res))))
 

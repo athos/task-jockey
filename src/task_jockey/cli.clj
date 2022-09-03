@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [send])
   (:require [task-jockey.client :as client]
             [task-jockey.log :as log]
-            [task-jockey.state :as state]))
+            [task-jockey.state :as state]
+            [task-jockey.utils :as utils]))
 
 (defn- with-client
   [{:keys [host port] :or {host "localhost" port 5555}:as opts} f & args]
@@ -26,7 +27,7 @@
     (println (:message res))))
 
 (defn stash [{:keys [tasks] :as opts}]
-  (let [task-ids (if (coll? tasks) (vec tasks) [tasks])
+  (let [task-ids (utils/->coll tasks)
         res (with-client opts client/stash task-ids)]
     (println (:message res))))
 
@@ -40,7 +41,7 @@
     (println (:message res))))
 
 (defn restart [{:keys [tasks] :as opts}]
-  (let [task-ids (if (coll? tasks) (vec tasks) [tasks])
+  (let [task-ids (utils/->coll tasks)
         res (with-client opts client/restart task-ids)]
     (println (:message res))))
 
@@ -49,7 +50,7 @@
     (println (:message res))))
 
 (defn log [{:keys [tasks] :as opts}]
-  (let [task-ids (if (or (nil? tasks) (coll? tasks)) (vec tasks) [tasks])
+  (let [task-ids (utils/->coll tasks)
         res (with-client opts client/log task-ids)]
     (log/print-logs (:tasks res) task-ids)))
 
@@ -61,7 +62,7 @@
     (println (:message res))))
 
 (defn kill [{:keys [tasks] :as opts}]
-  (let [task-ids (if (coll? tasks) (vec tasks) [tasks])
+  (let [task-ids (utils/->coll tasks)
         res (with-client opts client/kill task-ids)]
     (println (:message res))))
 
