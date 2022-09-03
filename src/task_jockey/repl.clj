@@ -11,7 +11,7 @@
 (def system nil)
 
 (defn add [command & {:keys [work-dir after]}]
-  (let [res (client/add (:client system) (name command) work-dir after)]
+  (let [res (client/add (:client system) command work-dir after)]
     (println (:message res))))
 
 (defn status [& {:keys [group]}]

@@ -1,7 +1,8 @@
 (ns task-jockey.client
   (:refer-clojure :exclude [send])
   (:require [clojure.edn :as edn]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [clojure.string :as str])
   (:import [java.io Closeable PushbackReader]
            [java.net Socket]))
 
@@ -27,10 +28,13 @@
     (send-message client msg)
     (recv-message client)))
 
-(defn add [client command path after]
-  (let [path (or path (System/getProperty "user.dir"))]
+(defn add [client cmd path after]
+  (let [cmd' (if (coll? cmd)
+               (str/join \space (map pr-str cmd))
+               (str cmd))
+        path (or path (System/getProperty "user.dir"))]
     (send-and-recv client :add
-                   :command command
+                   :command cmd'
                    :path (.getCanonicalPath (io/file path))
                    :dependencies (set after))))
 

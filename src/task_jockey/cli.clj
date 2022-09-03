@@ -12,7 +12,7 @@
     (apply f client args)))
 
 (defn add [{:keys [cmd dir after] :as opts}]
-  (let [res (with-client opts client/add (str cmd) dir after)]
+  (let [res (with-client opts client/add cmd dir after)]
     (println (:message res))))
 
 (defn status [{:keys [group] :as opts}]
