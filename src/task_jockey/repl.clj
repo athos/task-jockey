@@ -12,7 +12,7 @@
 
 (defn add [command & {:keys [work-dir after]}]
   (let [res (client/add (:client system) command work-dir after)]
-    (println (:message res))))
+    (select-keys res [:task-id])))
 
 (defn status [& {:keys [group]}]
   (let [res (client/status (:client system))]

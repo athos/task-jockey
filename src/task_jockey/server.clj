@@ -33,8 +33,8 @@
 (defn stop-server [server]
   (server/stop-server (:name server)))
 
-(defn success [msg]
-  {:type :success :message msg})
+(defn success [msg & {:as opts}]
+  (into {:type :success :message msg} opts))
 
 (defn failed [msg]
   {:type :failed :message msg})
@@ -44,10 +44,12 @@
               :status :queued
               :group "default"
               :path path
-              :dependencies after}]
-    (locking system/state
-      (vswap! system/state state/add-task task))
-    (success "New task added.")))
+              :dependencies after}
+        state (locking system/state
+                (vswap! system/state state/add-task task))
+        task-id (ffirst (rseq (:tasks state)))]
+    (success (format "New task added (id %d)" task-id)
+             :task-id task-id)))
 
 (defmethod handle-message :status [_]
   (let [state (locking system/state
