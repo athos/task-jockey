@@ -66,8 +66,8 @@
         res (with-client opts client/kill task-ids)]
     (println (:message res))))
 
-(defn parallel [{:keys [group tasks] :or {group "default"} :as opts}]
-  (let [res (with-client opts client/parallel group tasks)]
+(defn parallel [{:keys [n group] :as opts}]
+  (let [res (with-client opts client/parallel group n)]
     (println (:message res))))
 
 (defn groups [opts]
@@ -76,10 +76,10 @@
       (state/print-group-summary name group)
       (newline))))
 
-(defn group-add [{:keys [name tasks] :as opts}]
-  (let [res (with-client opts client/group-add name tasks)]
+(defn group-add [{:keys [name parallel] :as opts}]
+  (let [res (with-client opts client/group-add (str name) parallel)]
     (println (:message res))))
 
-(defn group-remove [{:keys [group] :as opts}]
-  (let [res (with-client opts client/group-remove group)]
+(defn group-rm [{:keys [name] :as opts}]
+  (let [res (with-client opts client/group-rm (str name))]
     (println (:message res))))

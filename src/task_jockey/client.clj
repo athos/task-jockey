@@ -74,10 +74,10 @@
 (defn kill [client task-ids]
   (send-and-recv client :kill :task-ids task-ids))
 
-(defn parallel [client group parallel-tasks]
+(defn parallel [client group tasks]
   (send-and-recv client :parallel
-                 :group group
-                 :parallel-tasks parallel-tasks))
+                 :group (or group "default")
+                 :parallel-tasks tasks))
 
 (defn groups [client]
   (send-and-recv client :group-list))
@@ -87,5 +87,5 @@
                  :name name
                  :parallel-tasks parallel-tasks))
 
-(defn group-remove [client name]
+(defn group-rm [client name]
   (send-and-recv client :group-remove :name name))

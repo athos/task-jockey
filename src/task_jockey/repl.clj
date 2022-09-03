@@ -67,7 +67,7 @@
         res (client/kill (:client system) task-ids)]
     (println (:message res))))
 
-(defn parallel [n & {:keys [group] :or {group "default"}}]
+(defn parallel [n & {:keys [group]}]
   (let [res (client/parallel (:client system) group n)]
     (println (:message res))))
 
@@ -77,14 +77,12 @@
       (state/print-group-summary name group)
       (newline))))
 
-(defn group-add [name & {:keys [parallel-tasks]}]
-  (let [res (client/group-add (:client system)
-                              name
-                              parallel-tasks)]
+(defn group-add [name & {:keys [parallel]}]
+  (let [res (client/group-add (:client system) name parallel)]
     (println (:message res))))
 
-(defn group-remove [name]
-  (let [res (client/group-remove (:client system) name)]
+(defn group-rm [name]
+  (let [res (client/group-rm (:client system) name)]
     (println (:message res))))
 
 (defn start-system [& {:keys [host port]
