@@ -1,32 +1,12 @@
 (ns task-jockey.client
   (:refer-clojure :exclude [send])
-  (:require [clojure.edn :as edn]
-            [clojure.java.io :as io]
-            [clojure.string :as str])
-  (:import [java.io Closeable PushbackReader]
-           [java.net Socket]))
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]
+            [task-jockey.protocols :as proto]))
 
-(defrecord Client [^Socket socket in out]
-  Closeable
-  (close [_] (.close socket)))
-
-(defn make-client [{:keys [host port]}]
-  (let [socket (Socket. host port)
-        in (PushbackReader. (io/reader (.getInputStream socket)))
-        out (io/writer (.getOutputStream socket))]
-    (->Client socket in out)))
-
-(defn send-message [client msg]
-  (binding [*out* (:out client)]
-    (prn msg)))
-
-(defn recv-message [client]
-  (edn/read {:eof nil} (:in client)))
-
-(defn send-and-recv [client type & fields]
+(defn- send-and-recv [client type & fields]
   (let [msg (apply array-map :type type fields)]
-    (send-message client msg)
-    (recv-message client)))
+    (proto/send-message client msg)))
 
 (defn add [client cmd path after]
   (let [cmd' (if (coll? cmd)

@@ -2,13 +2,20 @@
   (:refer-clojure :exclude [send])
   (:require [task-jockey.client :as client]
             [task-jockey.log :as log]
+            [task-jockey.message-handler :as message]
             [task-jockey.server :as server]
             [task-jockey.state :as state]
+            [task-jockey.transport :as transport]
             [task-jockey.system-state :as system]
             [task-jockey.task-handler :as handler]
             [task-jockey.utils :as utils]))
 
-(def system nil)
+(defn- make-default-transport []
+  (transport/make-fn-transport message/handle-message))
+
+(def system
+  {:client (make-default-transport)
+   :loop (handler/start-loop system/state system/message-queue)})
 
 (defn add [command & {:keys [work-dir after]}]
   (let [res (client/add (:client system) command work-dir after)]
@@ -85,23 +92,24 @@
   (let [res (client/group-rm (:client system) name)]
     (println (:message res))))
 
-(defn start-system [& {:keys [host port]
+(defn start-server! [& {:keys [host port]
                        :or {host "localhost" port 5555}
                        :as opts}]
   (let [opts' (assoc opts :host host :port port)
         fut (future (handler/start-loop system/state
                                         system/message-queue))
         server (server/start-server opts')
-        client (client/make-client opts')]
+        client (transport/make-socket-transport opts')]
     (alter-var-root #'system
                     (constantly {:loop fut :server server :client client}))
     nil))
 
-(defn stop-system []
+(defn stop-server! []
   (alter-var-root #'system
                   (fn [system]
-                    (when system
-                      (.close (:client system))
-                      (server/stop-server (:server system))
-                      (future-cancel (:loop system))
-                      nil))))
+                    (.close (:client system))
+                    (when-let [server (:server system)]
+                      (server/stop-server server))
+                    (when-let [fut (:loop system)]
+                      (future-cancel fut))
+                    {:client (make-default-transport)})))
