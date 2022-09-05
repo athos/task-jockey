@@ -112,15 +112,16 @@
   (when system
     (stop-system* system)))
 
-(defn start-system! [& {:keys [port] :as opts}]
+(defn start-system! [& {:keys [host port] :or {host "localhost"} :as opts}]
   (letfn [(start! [system]
             (ensure-stopped system)
             (let [fut (future
                         (handler/start-loop system/state system/message-queue))
+                  opts' (assoc opts :host host :port port)
                   [server client]
                   (if port
-                    [(server/start-server opts)
-                     (transport/make-socket-transport opts)]
+                    [(server/start-server opts')
+                     (transport/make-socket-transport opts')]
                     [nil (transport/make-fn-transport message/handle-message)])]
               {:loop fut :server server :client client}))]
     (alter-var-root #'system start!)
