@@ -1,8 +1,11 @@
 (ns task-jockey.message-handler
-  (:require [task-jockey.log :as log]
+  (:require [clojure.java.io :as io]
+            [task-jockey.log :as log]
             [task-jockey.message-queue :as queue]
             [task-jockey.state :as state]
-            [task-jockey.system-state :as system]))
+            [task-jockey.system-state :as system]
+            [task-jockey.task :as task])
+  (:import [java.io Reader]))
 
 (defmulti handle-message :type)
 
@@ -80,6 +83,24 @@
                          {}
                          (:tasks state))]
     {:type :log-response, :tasks tasks}))
+
+(defmethod handle-message :follow [{:keys [task-id]}]
+  (letfn [(step [^Reader in ^chars buf]
+            (if (.ready in)
+              (let [size (.read in buf)
+                    content (String. buf 0 size)]
+                {:type :stream, :content content,
+                 :cont #(step in buf)})
+              (let [task (locking system/state
+                           (get-in @system/state [:tasks task-id]))
+                    done? (task/task-done? task)]
+                (if done?
+                 (do (.close in)
+                     {:type :close})
+                  (do (Thread/sleep 1000)
+                      (recur in buf))))))]
+    (step (io/reader (log/log-file-path task-id))
+          (char-array 1024))))
 
 (defmethod handle-message :send [{:keys [task-id input]}]
   (let [msg {:type :send :task-id task-id :input input}]

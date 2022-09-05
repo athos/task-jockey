@@ -61,8 +61,13 @@
          res (client/log (current-client) task-ids)]
      (log/print-logs (:tasks res) task-ids))))
 
-(defn follow [id]
-  (log/follow-logs system/state id))
+(defn follow [task-id]
+  (client/follow (current-client)
+                 task-id
+                 (fn [{:keys [content]}]
+                   (print content)
+                   (flush)))
+  nil)
 
 (defn send [task-id input]
   (client/send (current-client) task-id input)

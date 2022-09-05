@@ -46,6 +46,10 @@
 (defn log [client task-ids]
   (send-and-recv client :log-request :task-ids task-ids))
 
+(defn follow [client task-id callback]
+  (let [msg {:type :follow, :task-id task-id}]
+    (proto/send-message-with-callback client msg callback)))
+
 (defn send [client task-id input]
   (send-and-recv client :send
                  :task-id task-id

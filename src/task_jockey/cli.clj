@@ -55,8 +55,11 @@
         res (with-client opts client/log task-ids)]
     (log/print-logs (:tasks res) task-ids)))
 
-(defn follow [{:keys [task]}]
-  (log/follow-logs nil task))
+(defn follow [{:keys [task] :as opts}]
+  (with-client opts client/follow task
+    (fn [{:keys [content]}]
+      (print content)
+      (flush))))
 
 (defn send [{:keys [task input] :as opts}]
   (let [res (with-client opts client/send task (str input))]
