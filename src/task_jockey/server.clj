@@ -12,8 +12,16 @@
 (defn accept []
   (loop []
     (when-let [msg (recv-message)]
-      (let [resp (message/handle-message msg)]
-        (send-message resp)
+      (let [res (message/handle-message msg)
+            res (loop [{:keys [cont] :as res} res]
+                  (if cont
+                    (let [res' (-> res
+                                   (assoc :continue? true)
+                                   (dissoc :cont))]
+                      (send-message res')
+                      (recur (cont)))
+                    res))]
+        (send-message res)
         (recur)))))
 
 (defn start-server [{:keys [host port] :as opts}]
