@@ -120,3 +120,14 @@
               {:loop fut :server server :client client}))]
     (alter-var-root #'system start!)
     :started))
+
+(defn connect! [& {:as opts}]
+  (alter-var-root #'system
+                  (fn [system]
+                    (ensure-stopped system)
+                    {:client (transport/make-socket-transport opts)}))
+  :connected)
+
+(defn disconnect! []
+  (stop-system!)
+  :disconnected)
