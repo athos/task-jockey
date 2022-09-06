@@ -20,12 +20,12 @@
   (let [res (client/add (current-client) (assoc opts :command command))]
     (select-keys res [:task-id])))
 
-(defn status [& {:keys [group]}]
+(defn status [& {:keys [group edn]}]
   (let [res (client/status (current-client))]
     (when (= (:type res) :status-response)
-      (if group
-        (state/print-single-group (:status res) group)
-        (state/print-all-groups (:status res))))))
+      (cond edn (:status res)
+            group (state/print-single-group (:status res) group)
+            :else (state/print-all-groups (:status res))))))
 
 (defn clean []
   (client/clean (current-client))

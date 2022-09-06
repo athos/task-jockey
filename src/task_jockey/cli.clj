@@ -22,12 +22,12 @@
         res (with-client opts' client/add opts')]
     (println (:message res))))
 
-(defn status [{:keys [group] :as opts}]
+(defn status [{:keys [group edn] :as opts}]
   (let [res (with-client opts client/status)]
     (when (= (:type res) :status-response)
-      (if group
-        (state/print-single-group (:status res) group)
-        (state/print-all-groups (:status res))))))
+      (cond edn (prn (:status res))
+            group (state/print-single-group (:status res) group)
+            :else (state/print-all-groups (:status res))))))
 
 (defn clean [opts]
   (let [res (with-client opts client/clean)]
