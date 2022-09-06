@@ -127,11 +127,12 @@
     (alter-var-root #'system start!)
     :started))
 
-(defn connect! [& {:as opts}]
+(defn connect! [& {:keys [host] :or {host "localhost"} :as opts}]
   (alter-var-root #'system
                   (fn [system]
                     (ensure-stopped system)
-                    {:client (transport/make-socket-transport opts)}))
+                    (let [opts' (assoc opts :host host)]
+                      {:client (transport/make-socket-transport opts')})))
   :connected)
 
 (defn disconnect! []
