@@ -15,11 +15,11 @@
 (defn failed [msg]
   {:type :failed :message msg})
 
-(defmethod handle-message :add [{:keys [command path after]}]
+(defmethod handle-message :add [{:keys [command dir after]}]
   (let [task {:command command
               :status :queued
               :group "default"
-              :path path
+              :dir dir
               :dependencies after}
         state (locking system/state
                 (vswap! system/state state/add-task task))

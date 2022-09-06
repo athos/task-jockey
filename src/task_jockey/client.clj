@@ -8,14 +8,14 @@
   (let [msg (apply array-map :type type fields)]
     (proto/send-message client msg)))
 
-(defn add [client cmd path after]
-  (let [cmd' (if (coll? cmd)
-               (str/join \space (map pr-str cmd))
-               (str cmd))
-        path (or path (System/getProperty "user.dir"))]
+(defn add [client {:keys [command dir after]}]
+  (let [cmd (if (coll? command)
+              (str/join \space (map pr-str command))
+              (str command))
+        dir (or dir (System/getProperty "user.dir"))]
     (send-and-recv client :add
-                   :command cmd'
-                   :path (.getCanonicalPath (io/file path))
+                   :command cmd
+                   :dir (.getCanonicalPath (io/file dir))
                    :dependencies (set after))))
 
 (defn status [client]

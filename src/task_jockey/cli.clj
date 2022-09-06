@@ -15,8 +15,11 @@
         client (transport/make-socket-transport opts')]
     (apply f client args)))
 
-(defn add [{:keys [cmd dir after] :as opts}]
-  (let [res (with-client opts client/add cmd dir after)]
+(defn add [{:keys [cmd] :as opts}]
+  (let [opts' (-> opts
+                  (assoc :command cmd)
+                  (dissoc :cmd))
+        res (with-client opts' client/add opts')]
     (println (:message res))))
 
 (defn status [{:keys [group] :as opts}]

@@ -16,8 +16,8 @@
   (or (:client system)
       (throw (ex-info "Call task-jockey.repl/start-system! first" {}))))
 
-(defn add [command & {:keys [work-dir after]}]
-  (let [res (client/add (current-client) command work-dir after)]
+(defn add [command & {:as opts}]
+  (let [res (client/add (current-client) (assoc opts :command command))]
     (select-keys res [:task-id])))
 
 (defn status [& {:keys [group]}]

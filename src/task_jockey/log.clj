@@ -15,7 +15,7 @@
 (defn print-log [task output]
   (printf "--- Task %d: %s ---\n" (:id task) (name (:status task)))
   (println "Command:" (:command task))
-  (println "   Path:" (:path task))
+  (println "    Dir:" (:dir task))
   (when (:start task)
     (println "  Start:" (utils/stringify-date (:start task))))
   (when (:end task)

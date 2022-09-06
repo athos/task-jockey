@@ -41,7 +41,7 @@
         child (-> (ProcessBuilder. ^"[Ljava.lang.String;" command)
                   (.redirectOutput log-file)
                   (.redirectError log-file)
-                  (.directory (io/file (:path task)))
+                  (.directory (io/file (:dir task)))
                   (.start))]
     (vswap! (:state task-handler) update-in [:tasks id]
             assoc :status :running :start (now))
