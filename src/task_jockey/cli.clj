@@ -2,7 +2,10 @@
   (:refer-clojure :exclude [send])
   (:require [task-jockey.client :as client]
             [task-jockey.log :as log]
+            [task-jockey.server :as server]
             [task-jockey.state :as state]
+            [task-jockey.system-state :as system]
+            [task-jockey.task-handler :as handler]
             [task-jockey.transport :as transport]
             [task-jockey.utils :as utils]))
 
@@ -87,3 +90,8 @@
 (defn group-rm [{:keys [name] :as opts}]
   (let [res (with-client opts client/group-rm (str name))]
     (println (:message res))))
+
+(defn start-server [& {:keys [host] :or {host "localhost"} :as opts}]
+  (let [opts' (assoc opts :host host)]
+    (server/start-server opts')
+    (handler/start-loop system/state system/message-queue)))
