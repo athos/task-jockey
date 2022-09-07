@@ -8,6 +8,9 @@
   (let [msg (apply array-map :type type fields)]
     (proto/send-message client msg)))
 
+(defn- envs []
+  (into {} (System/getenv)))
+
 (defn add [client {:keys [command group dir after stashed label]}]
   (let [cmd (if (coll? command)
               (str/join \space (map pr-str command))
@@ -17,6 +20,7 @@
                    :command cmd
                    :group (or (some-> group str) "default")
                    :dir (.getCanonicalPath (io/file dir))
+                   :envs (envs)
                    :dependencies (set after)
                    :stashed stashed
                    :label (some-> label str))))

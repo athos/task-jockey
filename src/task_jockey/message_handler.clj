@@ -16,11 +16,12 @@
   {:type :failed :message msg})
 
 (defmethod handle-message :add
-  [{:keys [command group dir after stashed label]}]
+  [{:keys [command group dir envs after stashed label]}]
   (let [task {:command command
               :status (if stashed :stashed :queued)
               :group group
               :dir dir
+              :envs envs
               :dependencies after
               :label label}
         state (locking system/state

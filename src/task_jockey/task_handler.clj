@@ -38,7 +38,11 @@
         worker-id (next-group-worker task-handler (:group task))
         log-file (log/log-file-path id)
         command (into-array String ["sh" "-c" (:command task)])
-        child (-> (ProcessBuilder. ^"[Ljava.lang.String;" command)
+        pb (ProcessBuilder. ^"[Ljava.lang.String;" command)
+        _ (doto (.environment pb)
+            (.clear)
+            (.putAll (:envs task)))
+        child (-> pb
                   (.redirectOutput log-file)
                   (.redirectError log-file)
                   (.directory (io/file (:dir task)))
