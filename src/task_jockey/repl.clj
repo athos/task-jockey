@@ -18,7 +18,9 @@
 
 (defn add [command & {:as opts}]
   (let [res (client/add (current-client) (assoc opts :command command))]
-    (select-keys res [:task-id])))
+    (if (:print-task-id opts)
+      (prn (:task-id res))
+      (select-keys res [:task-id]))))
 
 (defn status [& {:keys [group edn]}]
   (let [res (client/status (current-client))]

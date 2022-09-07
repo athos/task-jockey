@@ -20,7 +20,9 @@
                   (assoc :command cmd)
                   (dissoc :cmd))
         res (with-client opts' client/add opts')]
-    (println (:message res))))
+    (if (:print-task-id opts)
+      (prn (:task-id res))
+      (println (:message res)))))
 
 (defn status [{:keys [group edn] :as opts}]
   (let [res (with-client opts client/status)]
