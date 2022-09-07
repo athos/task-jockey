@@ -15,9 +15,9 @@
 (defn failed [msg]
   {:type :failed :message msg})
 
-(defmethod handle-message :add [{:keys [command dir after]}]
+(defmethod handle-message :add [{:keys [command dir after stashed]}]
   (let [task {:command command
-              :status :queued
+              :status (if stashed :stashed :queued)
               :group "default"
               :dir dir
               :dependencies after}
