@@ -8,13 +8,14 @@
   (let [msg (apply array-map :type type fields)]
     (proto/send-message client msg)))
 
-(defn add [client {:keys [command dir after stashed label]}]
+(defn add [client {:keys [command group dir after stashed label]}]
   (let [cmd (if (coll? command)
               (str/join \space (map pr-str command))
               (str command))
         dir (or dir (System/getProperty "user.dir"))]
     (send-and-recv client :add
                    :command cmd
+                   :group (or (some-> group str) "default")
                    :dir (.getCanonicalPath (io/file dir))
                    :dependencies (set after)
                    :stashed stashed
