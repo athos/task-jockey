@@ -41,7 +41,9 @@
         pb (ProcessBuilder. ^"[Ljava.lang.String;" command)
         _ (doto (.environment pb)
             (.clear)
-            (.putAll (:envs task)))
+            (.putAll (:envs task))
+            (.put "TASK_JOCKEY_GROUP" (:group task))
+            (.put "TASK_JOCKEY_WORKER_ID" (str worker-id)))
         child (-> pb
                   (.redirectOutput log-file)
                   (.redirectError log-file)
