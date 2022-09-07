@@ -8,7 +8,7 @@
   (let [msg (apply array-map :type type fields)]
     (proto/send-message client msg)))
 
-(defn add [client {:keys [command dir after stashed]}]
+(defn add [client {:keys [command dir after stashed label]}]
   (let [cmd (if (coll? command)
               (str/join \space (map pr-str command))
               (str command))
@@ -17,7 +17,8 @@
                    :command cmd
                    :dir (.getCanonicalPath (io/file dir))
                    :dependencies (set after)
-                   :stashed stashed)))
+                   :stashed stashed
+                   :label (some-> label str))))
 
 (defn status [client]
   (send-and-recv client :status))

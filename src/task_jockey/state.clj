@@ -85,7 +85,10 @@
     (print-group-summary group-name group)
     (if (empty? tasks)
       (newline)
-      (pp/print-table [:id :status :command :dir :start :end] tasks))))
+      (let [labeled? (some :label tasks)
+            columns `[:id :status ~@(when labeled? [:label])
+                      :command :dir :start :end]]
+        (pp/print-table columns tasks)))))
 
 (defn print-all-groups [state]
   (->> (:groups state)

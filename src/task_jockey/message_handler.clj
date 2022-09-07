@@ -15,12 +15,13 @@
 (defn failed [msg]
   {:type :failed :message msg})
 
-(defmethod handle-message :add [{:keys [command dir after stashed]}]
+(defmethod handle-message :add [{:keys [command dir after stashed label]}]
   (let [task {:command command
               :status (if stashed :stashed :queued)
               :group "default"
               :dir dir
-              :dependencies after}
+              :dependencies after
+              :label label}
         state (locking system/state
                 (vswap! system/state state/add-task task))
         task-id (ffirst (rseq (:tasks state)))]
