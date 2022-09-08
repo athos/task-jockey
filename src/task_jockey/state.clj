@@ -1,7 +1,9 @@
 (ns task-jockey.state
   (:require [clojure.pprint :as pp]
             [task-jockey.task :as task]
-            [task-jockey.utils :as utils]))
+            [task-jockey.utils :as utils])
+  (:import [java.text SimpleDateFormat]
+           [java.util Date]))
 
 (defn make-state []
   {:tasks (sorted-map)
@@ -71,6 +73,9 @@
           parallel-tasks
           (name status)))
 
+(def ^:private ^SimpleDateFormat datetime-fmt
+  (SimpleDateFormat. "HH:mm:ss"))
+
 (defn print-single-group [state group-name]
   (let [group (get-in state [:groups group-name])
         tasks (->> (:tasks state)
@@ -85,10 +90,16 @@
     (print-group-summary group-name group)
     (if (empty? tasks)
       (newline)
-      (let [labeled? (some :label tasks)
-            columns `[:id :status ~@(when labeled? [:label])
+      (let [columns `[:id :status
+                      ~@(when (some :enqueue-at tasks) [:enqueue-at])
+                      ~@(when (some :label tasks) [:label])
                       :command :dir :start :end]]
-        (pp/print-table columns tasks)))))
+        (->> tasks
+             (map (fn [t]
+                    (cond-> t
+                      (:enqueue-at t)
+                      (update :enqueue-at #(.format datetime-fmt ^Date %)))))
+             (pp/print-table columns))))))
 
 (defn print-all-groups [state]
   (->> (:groups state)

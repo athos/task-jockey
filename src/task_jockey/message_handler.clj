@@ -5,7 +5,8 @@
             [task-jockey.state :as state]
             [task-jockey.system-state :as system]
             [task-jockey.task :as task])
-  (:import [java.io Reader]))
+  (:import [java.io Reader]
+           [java.text SimpleDateFormat]))
 
 (defmulti handle-message :type)
 
@@ -15,20 +16,28 @@
 (defn failed [msg]
   {:type :failed :message msg})
 
+(def ^:private ^SimpleDateFormat datetime-fmt
+  (SimpleDateFormat. "yyyy-MM-dd HH:mm:ss"))
+
 (defmethod handle-message :add
-  [{:keys [command group dir envs after stashed label]}]
+  [{:keys [command group dir envs after stashed enqueue-at label]}]
   (let [task {:command command
-              :status (if stashed :stashed :queued)
+              :status (if (or stashed enqueue-at) :stashed :queued)
               :group group
               :dir dir
               :envs envs
               :dependencies after
+              :enqueue-at enqueue-at
               :label label}
         state (locking system/state
                 (vswap! system/state state/add-task task))
         task-id (ffirst (rseq (:tasks state)))]
-    (success (format "New task added (id %d)" task-id)
-             :task-id task-id)))
+    (if enqueue-at
+      (success (format "New task added (id %d). It will be enqueued at %s."
+                       task-id (.format datetime-fmt enqueue-at))
+               :task-id task-id :enqueue-at enqueue-at)
+      (success (format "New task added (id %d)" task-id)
+               :task-id task-id))))
 
 (defmethod handle-message :status [_]
   (let [state (locking system/state

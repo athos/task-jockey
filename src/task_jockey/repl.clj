@@ -20,7 +20,7 @@
   (let [res (client/add (current-client) (assoc opts :command command))]
     (if (:print-task-id opts)
       (prn (:task-id res))
-      (select-keys res [:task-id]))))
+      (select-keys res [:task-id :enqueue-at]))))
 
 (defn status [& {:keys [group edn]}]
   (let [res (client/status (current-client))]

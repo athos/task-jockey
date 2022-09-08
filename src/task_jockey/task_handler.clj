@@ -31,7 +31,7 @@
              first)
         (count pool))))
 
-(defn- now [] (Date.))
+(defn- now ^Date [] (Date.))
 
 (defn- start-process [task-handler id]
   (let [task (get-in @(:state task-handler) [:tasks id])
@@ -123,10 +123,20 @@
                   finished))
       task-handler)))
 
+(defn- enqueue-delayed-tasks [{:keys [state] :as task-handler}]
+  (locking state
+    (doseq [[id task] (:tasks @state)
+            :when (and (= (:status task) :stashed)
+                       (when-let [^Date t (:enqueue-at task)]
+                         (.before t (now))))]
+      (vswap! state assoc-in [:tasks id :status] :queued)))
+  task-handler)
+
 (defn- step [handler]
   (-> handler
       (handle-messages)
       (handle-finished-tasks)
+      (enqueue-delayed-tasks)
       (spawn-new)))
 
 (defn start-loop [state queue]

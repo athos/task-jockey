@@ -11,7 +11,7 @@
 (defn- envs []
   (into {} (System/getenv)))
 
-(defn add [client {:keys [command group dir after stashed label]}]
+(defn add [client {:keys [command group dir after stashed delay label]}]
   (let [cmd (if (coll? command)
               (str/join \space (map pr-str command))
               (str command))
@@ -23,6 +23,7 @@
                    :envs (envs)
                    :dependencies (set after)
                    :stashed stashed
+                   :enqueue-at delay
                    :label (some-> label str))))
 
 (defn status [client]
