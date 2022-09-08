@@ -55,10 +55,14 @@
     (vswap! system/state state/stash-tasks task-ids))
   (success "Tasks are stashed"))
 
-(defmethod handle-message :enqueue [{:keys [task-ids]}]
+(defmethod handle-message :enqueue [{:keys [task-ids enqueue-at]}]
   (locking system/state
-    (vswap! system/state state/enqueue-tasks task-ids))
-  (success "Tasks are enqueued"))
+    (vswap! system/state state/enqueue-tasks task-ids enqueue-at))
+  (if enqueue-at
+    (success (format  "Tasks will be enqueued at %s"
+                      (.format datetime-fmt enqueue-at))
+             :enqueue-at enqueue-at)
+    (success "Tasks are enqueued")))
 
 (defmethod handle-message :switch [{:keys [task-id1 task-id2]}]
   (locking system/state

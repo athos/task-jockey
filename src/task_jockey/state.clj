@@ -22,9 +22,12 @@
           state
           task-ids))
 
-(defn enqueue-tasks [state task-ids]
+(defn enqueue-tasks [state task-ids enqueue-at]
   (reduce (fn [state task-id]
-            (assoc-in state [:tasks task-id :status] :queued))
+            (if enqueue-at
+              (update-in state [:tasks task-id] assoc
+                         :status :stashed :enqueue-at enqueue-at)
+              (assoc-in state [:tasks task-id :status] :queued)))
           state
           task-ids))
 

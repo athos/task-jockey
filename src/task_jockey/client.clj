@@ -35,8 +35,8 @@
 (defn stash [client task-ids]
   (send-and-recv client :stash :task-ids task-ids))
 
-(defn enqueue [client task-ids]
-  (send-and-recv client :enqueue :task-ids task-ids))
+(defn enqueue [client task-ids {:keys [delay]}]
+  (send-and-recv client :enqueue :task-ids task-ids :enqueue-at delay))
 
 (defn switch [client task-id1 task-id2]
   (send-and-recv client :switch

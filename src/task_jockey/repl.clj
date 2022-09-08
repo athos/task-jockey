@@ -38,9 +38,9 @@
         res (client/stash (current-client) task-ids)]
     (println (:message res))))
 
-(defn enqueue [id-or-ids]
+(defn enqueue [id-or-ids & {:as opts}]
   (let [task-ids (utils/->coll id-or-ids)
-        res (client/enqueue (current-client) task-ids)]
+        res (client/enqueue (current-client) task-ids opts)]
     (println (:message res))))
 
 (defn switch [task-id1 task-id2]

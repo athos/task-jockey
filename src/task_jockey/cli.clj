@@ -42,7 +42,7 @@
 
 (defn enqueue [{:keys [tasks] :as opts}]
   (let [task-ids (if (coll? tasks) (vec tasks) [tasks])
-        res (with-client opts client/enqueue task-ids)]
+        res (with-client opts client/enqueue task-ids opts)]
     (println (:message res))))
 
 (defn switch [{:keys [task1 task2] :as opts}]
