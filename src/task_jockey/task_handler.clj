@@ -95,7 +95,8 @@
                                  first)]]
           (vswap! state update-in [:tasks task-id] assoc
                   :status :killed :end (now))
-          (.destroy ^Process child))))))
+          (.destroy ^Process child))))
+    true))
 
 (defn- handle-finished-tasks [{:keys [state children]}]
   (let [finished (for [[group pool] @children
@@ -127,16 +128,17 @@
       (vswap! state assoc-in [:tasks id :status] :queued))))
 
 (defn- step [handler]
-  (doto handler
-    (handle-messages)
-    (handle-finished-tasks)
-    (enqueue-delayed-tasks)
-    (spawn-new)))
+  (let [ret (handle-messages handler)]
+    (doto handler
+      (handle-finished-tasks)
+      (enqueue-delayed-tasks)
+      (spawn-new))
+    ret))
 
 (defn restart-handler [handler & {:keys [sync?]}]
   (let [f (fn []
-            (Thread/sleep 200)
-            (step handler)
+            (when-not (step handler)
+              (Thread/sleep 200))
             (recur))]
     (if sync?
       (f)
