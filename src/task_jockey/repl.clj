@@ -80,6 +80,9 @@
         res (client/kill (current-client) task-ids)]
     (println (:message res))))
 
+(defn wait []
+  (client/wait (current-client)))
+
 (defn parallel [n & {:keys [group]}]
   (let [res (client/parallel (current-client) group n)]
     (println (:message res))))

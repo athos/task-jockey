@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [send])
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [task-jockey.protocols :as proto]))
+            [task-jockey.protocols :as proto]
+            [task-jockey.task :as task]))
 
 (defn- send-and-recv [client type & fields]
   (let [msg (apply array-map :type type fields)]
@@ -65,6 +66,15 @@
 
 (defn kill [client task-ids]
   (send-and-recv client :kill :task-ids task-ids))
+
+(defn wait [client]
+  (loop []
+    (let [res (send-and-recv client :status)]
+      (when-not (->> (get-in res [:status :tasks])
+                     vals
+                     (every? task/task-done?))
+        (Thread/sleep 2000)
+        (recur)))))
 
 (defn parallel [client group tasks]
   (send-and-recv client :parallel
