@@ -133,9 +133,18 @@
     (enqueue-delayed-tasks)
     (spawn-new)))
 
-(defn start-loop [state queue]
+(defn restart-handler [handler & {:keys [sync?]}]
+  (let [f (fn []
+            (Thread/sleep 200)
+            (step handler)
+            (recur))]
+    (if sync?
+      (f)
+      (assoc handler :loop (future (f))))))
+
+(defn start-handler [state queue & {:keys [sync?]}]
   (let [handler (make-task-handler state queue)]
-    (loop []
-      (Thread/sleep 200)
-      (step handler)
-      (recur))))
+    (restart-handler handler :sync? sync?)))
+
+(defn stop-handler [handler]
+  (future-cancel (:loop handler)))

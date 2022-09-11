@@ -99,4 +99,4 @@
 (defn start-server [& {:keys [host] :or {host "localhost"} :as opts}]
   (let [opts' (assoc opts :host host)]
     (server/start-server opts')
-    (handler/start-loop system/state system/message-queue)))
+    (handler/start-handler system/state system/message-queue)))

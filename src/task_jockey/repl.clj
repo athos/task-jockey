@@ -102,8 +102,8 @@
   (.close (current-client))
   (when-let [server (:server system)]
     (server/stop-server server))
-  (when-let [fut (:loop system)]
-    (future-cancel fut))
+  (when-let [handler (:handler system)]
+    (handler/stop-handler handler))
   nil)
 
 (defn stop-system! []
@@ -117,15 +117,17 @@
 (defn start-system! [& {:keys [host port] :or {host "localhost"} :as opts}]
   (letfn [(start! [system]
             (ensure-stopped system)
-            (let [fut (future
-                        (handler/start-loop system/state system/message-queue))
+            (let [handler (if-let [handler (:handler system)]
+                            (handler/restart-handler handler)
+                            (handler/start-handler system/state
+                                                   system/message-queue))
                   opts' (assoc opts :host host :port port)
                   [server client]
                   (if port
                     [(server/start-server opts')
                      (transport/make-socket-transport opts')]
                     [nil (transport/make-fn-transport message/handle-message)])]
-              {:loop fut :server server :client client}))]
+              {:handler handler :server server :client client}))]
     (alter-var-root #'system start!)
     :started))
 
