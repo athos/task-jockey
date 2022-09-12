@@ -78,7 +78,7 @@
         res (with-client opts client/kill task-ids)]
     (println (:message res))))
 
-(defn wait [& {:keys [quiet] :as opts}]
+(defn wait [{:keys [group tasks quiet] :as opts}]
   (letfn [(callback [id prev curr first?]
             (if (nil? prev)
               (if first?
@@ -86,7 +86,8 @@
                 (printf "New task %d with status %s\n" id curr))
               (printf "Task %d status changed: %s -> %s\n" id prev curr))
             (flush))]
-    (with-client opts client/wait (if quiet (constantly nil) callback))))
+    (with-client opts client/wait group (utils/->coll tasks)
+      (if quiet (constantly nil) callback))))
 
 (defn parallel [{:keys [n group] :as opts}]
   (let [res (with-client opts client/parallel group n)]
