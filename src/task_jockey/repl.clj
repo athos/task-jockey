@@ -80,8 +80,10 @@
         res (client/kill (current-client) task-ids)]
     (println (:message res))))
 
-(defn wait []
-  (client/wait (current-client)))
+(defn wait [& {:keys [callback]}]
+  (letfn [(callback' [id prev curr first?]
+            (callback {:id id :old prev :new curr :first? first?}))]
+    (client/wait (current-client) (if callback callback' (constantly nil)))))
 
 (defn parallel [n & {:keys [group]}]
   (let [res (client/parallel (current-client) group n)]

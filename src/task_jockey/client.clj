@@ -67,14 +67,25 @@
 (defn kill [client task-ids]
   (send-and-recv client :kill :task-ids task-ids))
 
-(defn wait [client]
-  (loop []
-    (let [res (send-and-recv client :status)]
-      (when-not (->> (get-in res [:status :tasks])
-                     vals
-                     (every? task/task-done?))
+(defn wait [client callback]
+  (loop [first? true, previous-statuses {}]
+    (let [res (send-and-recv client :status)
+          [finished? changed]
+          (reduce (fn [[finished? changed] task]
+                    [(and finished? (task/task-done? task))
+                     (cond-> changed
+                       (let [prev (get previous-statuses (:id task))
+                             curr (:status task)]
+                         (and (not= prev curr)
+                              (or prev (= curr :running))))
+                       (assoc (:id task) (:status task)))])
+                  [true (sorted-map)]
+                  (vals (get-in res [:status :tasks])))]
+      (doseq [[id status] changed]
+        (callback id (get previous-statuses id) status first?))
+      (when-not finished?
         (Thread/sleep 2000)
-        (recur)))))
+        (recur false (into previous-statuses changed))))))
 
 (defn parallel [client group tasks]
   (send-and-recv client :parallel
