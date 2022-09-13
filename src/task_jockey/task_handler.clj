@@ -131,11 +131,21 @@
                          (.before t (now))))]
       (vswap! state assoc-in [:tasks id :status] :queued))))
 
+(defn- check-failed-dependencies [{:keys [state]}]
+  (locking state
+    (doseq [[id task] (:tasks @state)
+            :when (and (= (:status task) :queued)
+                       (some #(task/task-failed? (get-in @state [:tasks %]))
+                             (:dependencies task)))]
+      (vswap! state update-in [:tasks id] assoc
+              :status :dependency-failed :start (now) :end (now)))))
+
 (defn- step [handler]
   (let [ret (handle-messages handler)]
     (doto handler
       (handle-finished-tasks)
       (enqueue-delayed-tasks)
+      (check-failed-dependencies)
       (spawn-new))
     ret))
 
