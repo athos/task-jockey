@@ -20,13 +20,13 @@
   (SimpleDateFormat. "yyyy-MM-dd HH:mm:ss"))
 
 (defmethod handle-message :add
-  [{:keys [command group dir envs after stashed enqueue-at label]}]
+  [{:keys [command group dir envs dependencies stashed enqueue-at label]}]
   (let [task {:command command
               :status (if (or stashed enqueue-at) :stashed :queued)
               :group group
               :dir dir
               :envs envs
-              :dependencies after
+              :dependencies dependencies
               :enqueue-at enqueue-at
               :label label}
         state (locking system/state
