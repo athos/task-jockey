@@ -38,22 +38,26 @@
         worker-id (next-group-worker task-handler (:group task))
         log-file (log/log-file-path id)
         command (into-array String ["sh" "-c" (:command task)])
-        pb (ProcessBuilder. ^"[Ljava.lang.String;" command)
-        _ (doto (.environment pb)
-            (.clear)
-            (.putAll (:envs task))
-            (.put "TASK_JOCKEY_GROUP" (:group task))
-            (.put "TASK_JOCKEY_WORKER_ID" (str worker-id)))
-        child (-> pb
-                  (.redirectOutput log-file)
-                  (.redirectError log-file)
-                  (.directory (io/file (:dir task)))
-                  (.start))]
-    (vswap! (:state task-handler) update-in [:tasks id]
-            assoc :status :running :start (now))
-    (vswap! (:children task-handler) assoc-in
-            [(:group task) worker-id]
-            {:task id :child child})))
+        pb (doto (ProcessBuilder. ^"[Ljava.lang.String;" command)
+             (.redirectOutput log-file)
+             (.redirectError log-file)
+             (.directory (io/file (:dir task))))]
+    (doto (.environment pb)
+      (.clear)
+      (.putAll (:envs task))
+      (.put "TASK_JOCKEY_GROUP" (:group task))
+      (.put "TASK_JOCKEY_WORKER_ID" (str worker-id)))
+    (try
+      (let [child (.start pb)]
+        (vswap! (:state task-handler) update-in [:tasks id]
+                assoc :status :running :start (now))
+        (vswap! (:children task-handler) assoc-in
+                [(:group task) worker-id]
+                {:task id :child child}))
+      (catch Exception e
+        (vswap! (:state task-handler) update-in [:tasks id]
+                assoc :status :failed-to-spawn :reason (ex-message e)
+                :start (now) :end (now))))))
 
 (defn- spawn-new [task-handler]
   (locking (:state task-handler)
