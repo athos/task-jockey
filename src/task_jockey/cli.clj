@@ -18,6 +18,7 @@
 (defn add [{:keys [cmd] :as opts}]
   (let [opts' (-> opts
                   (assoc :command cmd)
+                  (update :after utils/->coll)
                   (dissoc :cmd))
         res (with-client opts' client/add opts')]
     (if (:print-task-id opts)

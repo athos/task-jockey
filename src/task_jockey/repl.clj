@@ -17,7 +17,10 @@
       (throw (ex-info "Call task-jockey.repl/start-system! first" {}))))
 
 (defn add [command & {:as opts}]
-  (let [res (client/add (current-client) (assoc opts :command command))]
+  (let [opts' (cond-> (assoc opts :command command)
+                (:after opts)
+                (update :after utils/->coll))
+        res (client/add (current-client) opts')]
     (if (:print-task-id opts)
       (prn (:task-id res))
       (select-keys res [:task-id :enqueue-at]))))
