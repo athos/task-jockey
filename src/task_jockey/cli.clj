@@ -74,9 +74,8 @@
   (let [res (with-client opts client/send task (str input))]
     (println (:message res))))
 
-(defn kill [{:keys [tasks] :as opts}]
-  (let [task-ids (utils/->coll tasks)
-        res (with-client opts client/kill task-ids)]
+(defn kill [{:keys [group tasks] :as opts}]
+  (let [res (with-client opts client/kill group (utils/->coll tasks))]
     (println (:message res))))
 
 (defn wait [{:keys [group tasks quiet] :as opts}]

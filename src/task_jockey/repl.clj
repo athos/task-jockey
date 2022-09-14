@@ -78,10 +78,14 @@
   (client/send (current-client) task-id input)
   nil)
 
-(defn kill [id-or-ids]
-  (let [task-ids (utils/->coll id-or-ids)
-        res (client/kill (current-client) task-ids)]
-    (println (:message res))))
+(defn kill
+  ([] (kill nil))
+  ([ids-or-group]
+   (let [res (client/kill (current-client)
+                          (when (string? ids-or-group) ids-or-group)
+                          (when (or (int? ids-or-group) (coll? ids-or-group))
+                            (utils/->coll ids-or-group)))]
+     (println (:message res)))))
 
 (defn wait
   ([] (wait nil))

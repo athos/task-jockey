@@ -123,8 +123,8 @@
     (queue/push-message! system/message-queue msg)
     (success "Message is being send to the process")))
 
-(defmethod handle-message :kill [{:keys [task-ids]}]
-  (let [msg {:type :kill :task-ids task-ids}]
+(defmethod handle-message :kill [{:keys [group task-ids]}]
+  (let [msg {:type :kill :group group :task-ids task-ids}]
     (queue/push-message! system/message-queue msg)
     (success "Tasks are being killed")))
 

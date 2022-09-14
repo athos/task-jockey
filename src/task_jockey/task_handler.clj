@@ -91,15 +91,28 @@
           (.flush)))
       :kill
       (locking state
-        (doseq [task-id (:task-ids msg)
-                :let [child (->> (for [[_ pool] @children
-                                       [_ {:keys [task child]}] pool
-                                       :when (= task-id task)]
-                                   child)
-                                 first)]]
-          (vswap! state update-in [:tasks task-id] assoc
-                  :status :killed :end (now))
-          (.destroy ^Process child))))
+        (let [task-ids (cond (:group msg)
+                             (for [task (vals (:tasks @state))
+                                   :when (and (= (:group task) (:group msg))
+                                              (= (:status task) :running))]
+                               (:id task))
+
+                             (seq (:task-ids msg))
+                             (:task-ids msg)
+
+                             :else
+                             (for [task (vals (:tasks @state))
+                                   :when (= (:status task) :running)]
+                               (:id task)))]
+          (doseq [task-id task-ids
+                  :let [child (->> (for [[_ pool] @children
+                                         [_ {:keys [task child]}] pool
+                                         :when (= task-id task)]
+                                     child)
+                                   first)]]
+            (vswap! state update-in [:tasks task-id] assoc
+                    :status :killed :end (now))
+            (.destroy ^Process child)))))
     true))
 
 (defn- handle-finished-tasks [{:keys [state children]}]

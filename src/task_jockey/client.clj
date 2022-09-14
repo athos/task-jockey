@@ -64,8 +64,8 @@
                  :task-id task-id
                  :input input))
 
-(defn kill [client task-ids]
-  (send-and-recv client :kill :task-ids task-ids))
+(defn kill [client group task-ids]
+  (send-and-recv client :kill :group group :task-ids task-ids))
 
 (defn wait [client group task-ids callback]
   (loop [first? true, previous-statuses {}]
