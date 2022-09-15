@@ -4,13 +4,12 @@
             [task-jockey.log :as log]
             [task-jockey.state :as state]
             [task-jockey.system :as system]
-            [task-jockey.transport :as transport]
             [task-jockey.utils :as utils]))
 
 (defn- with-client
   [{:keys [host port] :or {host "localhost" port 5555}:as opts} f & args]
   (let [opts' (assoc opts :host host :port port)
-        client (transport/make-socket-transport opts')]
+        client (system/make-socket-client opts')]
     (apply f client args)))
 
 (defn add [{:keys [cmd] :as opts}]

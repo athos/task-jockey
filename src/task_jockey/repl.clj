@@ -2,10 +2,8 @@
   (:refer-clojure :exclude [send])
   (:require [task-jockey.client :as client]
             [task-jockey.log :as log]
-            [task-jockey.message-handler :as message]
             [task-jockey.state :as state]
             [task-jockey.system :as system]
-            [task-jockey.transport :as transport]
             [task-jockey.utils :as utils]))
 
 (def ^:private system nil)
@@ -126,17 +124,14 @@
   (when system
     (stop-system* system)))
 
-(defn start-system! [& {:keys [host port] :or {host "localhost"} :as opts}]
+(defn start-system! [& {:keys [host] :or {host "localhost"} :as opts}]
   (letfn [(start! [system]
             (ensure-stopped system)
             (let [opts' (assoc opts :host host)
                   system' (if system
                             (system/restart-system system opts')
-                            (system/start-system opts))
-                  client (if port
-                           (transport/make-socket-transport opts')
-                           (transport/make-fn-transport message/handle-message)) ]
-              (assoc system' :client client)))]
+                            (system/start-system opts))]
+              (assoc system' :client (system/make-client opts'))))]
     (alter-var-root #'system start!)
     :started))
 
@@ -145,7 +140,7 @@
                   (fn [system]
                     (ensure-stopped system)
                     (let [opts' (assoc opts :host host)]
-                      {:client (transport/make-socket-transport opts')})))
+                      {:client (system/make-socket-client opts')})))
   :connected)
 
 (defn disconnect! []

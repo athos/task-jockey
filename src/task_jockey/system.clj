@@ -1,7 +1,9 @@
 (ns task-jockey.system
-  (:require [task-jockey.server :as server]
+  (:require [task-jockey.message-handler :as message]
+            [task-jockey.server :as server]
             [task-jockey.system-state :as system]
-            [task-jockey.task-handler :as handler]))
+            [task-jockey.task-handler :as handler]
+            [task-jockey.transport :as transport]))
 
 (defn stop-system [{:keys [handler server]}]
   (when server
@@ -18,3 +20,11 @@
 
 (defn start-system [opts]
   (restart-system nil opts))
+
+(defn make-socket-client [opts]
+  (transport/make-socket-transport opts))
+
+(defn make-client [{:keys [port] :as opts}]
+  (if port
+    (transport/make-socket-transport opts)
+    (transport/make-fn-transport message/handle-message)))
