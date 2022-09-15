@@ -76,12 +76,12 @@
     (println (:message res))))
 
 (defn wait [{:keys [group tasks quiet] :as opts}]
-  (letfn [(callback [id prev curr first?]
-            (if (nil? prev)
-              (if first?
-                (printf "Found active task %d with status %s\n" id curr)
-                (printf "New task %d with status %s\n" id curr))
-              (printf "Task %d status changed: %s -> %s\n" id prev curr))
+  (letfn [(callback [id prev curr added?]
+            (cond added? (printf "New task %d with status %s\n" id curr)
+                  (nil? prev) (printf "Found active task %d with status %s\n"
+                                      id curr)
+                  :else (printf "Task %d status changed: %s -> %s\n"
+                                id prev curr))
             (flush))]
     (with-client opts client/wait group (utils/->coll tasks)
       (if quiet (constantly nil) callback))))

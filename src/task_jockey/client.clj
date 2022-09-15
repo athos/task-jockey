@@ -89,8 +89,10 @@
                          (assoc (:id task) (:status task)))]))
                   [true (sorted-map)]
                   target-ids)]
-      (doseq [[id status] changed]
-        (callback id (get previous-statuses id) status first?))
+      (doseq [[id status] changed
+              :let [prev (get previous-statuses id)
+                    added? (and (nil? prev) (not first?))]]
+        (callback id prev status added?))
       (when-not finished?
         (Thread/sleep 2000)
         (recur false (into previous-statuses changed))))))

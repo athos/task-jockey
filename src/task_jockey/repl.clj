@@ -86,8 +86,8 @@
 (defn wait
   ([] (wait nil))
   ([ids-or-group & {:keys [callback]}]
-   (letfn [(callback' [id prev curr first?]
-             (callback {:id id :old prev :new curr :first? first?}))]
+   (letfn [(callback' [id prev curr added?]
+             (callback {:id id :old prev :new curr :added? added?}))]
      (client/wait (current-client)
                   (when (string? ids-or-group) ids-or-group)
                   (when (or (int? ids-or-group) (coll? ids-or-group))
