@@ -3,11 +3,9 @@
   (:require [task-jockey.client :as client]
             [task-jockey.log :as log]
             [task-jockey.message-handler :as message]
-            [task-jockey.server :as server]
             [task-jockey.state :as state]
+            [task-jockey.system :as system]
             [task-jockey.transport :as transport]
-            [task-jockey.system-state :as system]
-            [task-jockey.task-handler :as handler]
             [task-jockey.utils :as utils]))
 
 (def ^:private system nil)
@@ -118,11 +116,7 @@
 
 (defn- stop-system* [system]
   (.close (current-client))
-  (when-let [server (:server system)]
-    (server/stop-server server))
-  (when-let [handler (:handler system)]
-    (handler/stop-handler handler))
-  nil)
+  (system/stop-system system))
 
 (defn stop-system! []
   (alter-var-root #'system stop-system*)
@@ -135,17 +129,14 @@
 (defn start-system! [& {:keys [host port] :or {host "localhost"} :as opts}]
   (letfn [(start! [system]
             (ensure-stopped system)
-            (let [handler (if-let [handler (:handler system)]
-                            (handler/restart-handler handler)
-                            (handler/start-handler system/state
-                                                   system/message-queue))
-                  opts' (assoc opts :host host :port port)
-                  [server client]
-                  (if port
-                    [(server/start-server opts')
-                     (transport/make-socket-transport opts')]
-                    [nil (transport/make-fn-transport message/handle-message)])]
-              {:handler handler :server server :client client}))]
+            (let [opts' (assoc opts :host host)
+                  system' (if system
+                            (system/restart-system system opts')
+                            (system/start-system opts))
+                  client (if port
+                           (transport/make-socket-transport opts')
+                           (transport/make-fn-transport message/handle-message)) ]
+              (assoc system' :client client)))]
     (alter-var-root #'system start!)
     :started))
 
