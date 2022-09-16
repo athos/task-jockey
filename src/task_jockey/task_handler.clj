@@ -2,6 +2,7 @@
   (:require [clojure.java.io :as io]
             [task-jockey.log :as log]
             [task-jockey.message-queue :as queue]
+            [task-jockey.settings :as settings]
             [task-jockey.task :as task])
   (:import [java.util Date]))
 
@@ -162,11 +163,13 @@
       (spawn-new))
     ret))
 
-(defn restart-handler [handler {:keys [sync?]}]
+(defn restart-handler [handler {:keys [sync?] :as opts}]
   (let [f (fn []
-            (when-not (step handler)
-              (Thread/sleep 200))
-            (recur))]
+            (settings/with-settings opts
+              (loop []
+                (when-not (step handler)
+                  (Thread/sleep 200))
+                (recur))))]
     (if sync?
       (f)
       (assoc handler :loop (future (f))))))

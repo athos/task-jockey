@@ -1,7 +1,8 @@
 (ns task-jockey.transport
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [task-jockey.protocols :as proto])
+            [task-jockey.protocols :as proto]
+            [task-jockey.settings :as settings])
   (:import [java.io Closeable PushbackReader]
            [java.net Socket]))
 
@@ -35,18 +36,20 @@
         out (io/writer (.getOutputStream socket))]
     (->SocketTransport socket in out)))
 
-(defrecord FnTransport [handler]
+(defrecord FnTransport [handler settings]
   proto/ITransport
   (send-message [_ msg]
-    (handler msg))
+    (settings/with-settings settings
+      (handler msg)))
   (send-message-with-callback [_ msg callback]
-    (loop [res (handler msg)]
-      (if-let [cont (:cont res)]
-        (do (callback (dissoc res :cont))
-            (recur (cont)))
-        res)))
+    (settings/with-settings settings
+      (loop [res (handler msg)]
+        (if-let [cont (:cont res)]
+          (do (callback (dissoc res :cont))
+              (recur (cont)))
+          res))))
   Closeable
   (close [_]))
 
-(defn make-fn-transport [handler]
-  (->FnTransport handler))
+(defn make-fn-transport [handler settings]
+  (->FnTransport handler settings))

@@ -1,13 +1,15 @@
 (ns task-jockey.log
   (:require [clojure.java.io :as io]
+            [task-jockey.settings :as settings]
             [task-jockey.task :as task]
             [task-jockey.utils :as utils])
   (:import [java.io File]))
 
-(def task-log-directory "task_logs")
+(defn logs-dir ^File []
+  (io/file (:base-dir (settings/settings)) "task_logs"))
 
 (defn log-file-path ^File [task-id]
-  (io/file task-log-directory (str task-id ".log")))
+  (io/file (logs-dir) (str task-id ".log")))
 
 (defn read-log-file [task-id]
   (slurp (log-file-path task-id)))
