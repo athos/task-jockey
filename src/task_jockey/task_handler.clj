@@ -162,7 +162,7 @@
       (spawn-new))
     ret))
 
-(defn restart-handler [handler & {:keys [sync?]}]
+(defn restart-handler [handler {:keys [sync?]}]
   (let [f (fn []
             (when-not (step handler)
               (Thread/sleep 200))
@@ -171,9 +171,9 @@
       (f)
       (assoc handler :loop (future (f))))))
 
-(defn start-handler [state queue & {:keys [sync?]}]
+(defn start-handler [state queue opts]
   (let [handler (make-task-handler state queue)]
-    (restart-handler handler :sync? sync?)))
+    (restart-handler handler opts)))
 
 (defn stop-handler [handler]
   (future-cancel (:loop handler)))

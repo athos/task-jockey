@@ -128,9 +128,7 @@
   (letfn [(start! [system]
             (ensure-stopped system)
             (let [opts' (assoc opts :host host)
-                  system' (if system
-                            (system/restart-system system opts')
-                            (system/start-system opts))]
+                  system' (system/start-system system opts')]
               (assoc system' :client (system/make-client opts'))))]
     (alter-var-root #'system start!)
     :started))

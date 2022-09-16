@@ -12,14 +12,19 @@
     (handler/stop-handler handler))
   nil)
 
-(defn restart-system [system {:keys [port] :as opts}]
-  (stop-system system)
-  (let [handler (handler/start-handler system/state system/message-queue)]
-    (cond-> {:handler handler}
-      port (assoc :server (when port (server/start-server opts))))))
-
-(defn start-system [opts]
-  (restart-system nil opts))
+(defn start-system
+  ([opts] (start-system nil opts))
+  ([system {:keys [port] :as opts}]
+   (stop-system system)
+   (cond-> {}
+     port (assoc :server (when port (server/start-server opts)))
+     ;; handler should be started because it might be sync'ed
+     true (assoc :handler
+                 (if system
+                   (handler/restart-handler (:handler system) opts)
+                   (handler/start-handler system/state
+                                          system/message-queue
+                                          opts))))))
 
 (defn make-socket-client [opts]
   (transport/make-socket-transport opts))
