@@ -9,13 +9,13 @@
 (defn make-task-handler [state queue]
   {:state state
    :queue queue
-   :children (volatile! {"default" (sorted-map)})})
+   :local (volatile! {:children {"default" (sorted-map)}})})
 
-(defn- next-task-id [{:keys [children state]}]
+(defn- next-task-id [{:keys [state local]}]
   (->> (:tasks @state)
        (filter (fn [[_ {:keys [group] :as task}]]
                  (and (= (:status task) :queued)
-                      (let [running-tasks (get @children group)]
+                      (let [running-tasks (get-in @local [:children group])]
                         (< (count running-tasks)
                            (get-in @state [:groups group :parallel-tasks])))
                       (let [deps (:dependencies task)]
@@ -23,8 +23,8 @@
                             (every? #(task/task-done? (get (:tasks @state) %)) deps))))))
        ffirst))
 
-(defn- next-group-worker [{:keys [children]} group]
-  (let [pool (get @children group)]
+(defn- next-group-worker [{:keys [local]} group]
+  (let [pool (get-in @local [:children group])]
     (or (->> pool
              (keep-indexed (fn [i [worker-id _]]
                              (when (not= i worker-id)
@@ -52,8 +52,8 @@
       (let [child (.start pb)]
         (vswap! (:state task-handler) update-in [:tasks id]
                 assoc :status :running :start (now))
-        (vswap! (:children task-handler) assoc-in
-                [(:group task) worker-id]
+        (vswap! (:local task-handler) assoc-in
+                [:children (:group task) worker-id]
                 {:task id :child child}))
       (catch Exception e
         (vswap! (:state task-handler) update-in [:tasks id]
@@ -67,7 +67,7 @@
         (start-process task-handler id)
         (recur)))))
 
-(defn- handle-messages [{:keys [state queue children]}]
+(defn- handle-messages [{:keys [state queue local]}]
   (when-let [msg (queue/pop-message! queue)]
     (case (:type msg)
       :group-add
@@ -75,14 +75,14 @@
             (vswap! state assoc-in [:groups (:name msg)]
                     {:parallel-tasks (:parallel-tasks msg)
                      :status :running}))
-          (vswap! children assoc (:name msg) (sorted-map)))
+          (vswap! local assoc-in [:children (:name msg)] (sorted-map)))
       :group-remove
       (do (locking state
             (vswap! state update :groups dissoc (:name msg)))
-          (vswap! children dissoc (:name msg)))
+          (vswap! local update :children dissoc (:name msg)))
       :send
       (let [{:keys [task-id input]} msg
-            child (->> (for [[_ pool] @children
+            child (->> (for [[_ pool] (:children @local)
                              [_ {:keys [task child]}] pool
                              :when (= task task-id)]
                          child)
@@ -106,7 +106,7 @@
                                    :when (= (:status task) :running)]
                                (:id task)))]
           (doseq [task-id task-ids
-                  :let [child (->> (for [[_ pool] @children
+                  :let [child (->> (for [[_ pool] (:children @local)
                                          [_ {:keys [task child]}] pool
                                          :when (= task-id task)]
                                      child)
@@ -116,8 +116,8 @@
             (.destroy ^Process child)))))
     true))
 
-(defn- handle-finished-tasks [{:keys [state children]}]
-  (let [finished (for [[group pool] @children
+(defn- handle-finished-tasks [{:keys [state local]}]
+  (let [finished (for [[group pool] (:children @local)
                        [worker {:keys [task ^Process child]}] pool
                        :when (not (.isAlive child))]
                    [group worker task (.exitValue child)])]
@@ -135,7 +135,7 @@
                      @state)
              (vreset! state)))
       (doseq [[group worker _ _] finished]
-        (vswap! children update group dissoc worker)))))
+        (vswap! local update-in [:children group] dissoc worker)))))
 
 (defn- enqueue-delayed-tasks [{:keys [state]}]
   (locking state
