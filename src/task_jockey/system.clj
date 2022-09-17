@@ -1,5 +1,6 @@
 (ns task-jockey.system
-  (:require [task-jockey.log :as log]
+  (:require [task-jockey.client :as client]
+            [task-jockey.log :as log]
             [task-jockey.message-handler :as message]
             [task-jockey.server :as server]
             [task-jockey.settings :as settings]
@@ -35,10 +36,12 @@
                                             opts')))))))
 
 (defn make-socket-client [opts]
-  (transport/make-socket-transport opts))
+  (let [opts' (settings/load-settings opts)]
+    (client/->Client (transport/make-socket-transport opts) opts')))
 
 (defn make-client [{:keys [port] :as opts}]
-  (let [opts' (settings/load-settings opts)]
-    (if port
-      (transport/make-socket-transport opts')
-      (transport/make-fn-transport message/handle-message opts'))))
+  (let [opts' (settings/load-settings opts)
+        transport (if port
+                    (transport/make-socket-transport opts')
+                    (transport/make-fn-transport message/handle-message opts'))]
+    (client/->Client transport opts')))
