@@ -4,7 +4,9 @@
             [task-jockey.log :as log]
             [task-jockey.message-queue :as queue]
             [task-jockey.settings :as settings]
-            [task-jockey.task :as task])
+            [task-jockey.task :as task]
+            [task-jockey.task-handler.messages :as messages]
+            [task-jockey.utils :as utils])
   (:import [java.util Date]))
 
 (defn make-task-handler [state queue]
@@ -25,8 +27,6 @@
          task-id)
        first))
 
-(defn- now ^Date [] (Date.))
-
 (defn- start-process [{:keys [state local]} id]
   (let [task (get-in @state [:tasks id])
         worker-id (children/next-group-worker (:children @local) (:group task))
@@ -44,13 +44,13 @@
     (try
       (let [child (.start pb)]
         (vswap! state update-in [:tasks id]
-                assoc :status :running :start (now))
+                assoc :status :running :start (utils/now))
         (vswap! local update :children
                 children/add-child (:group task) worker-id id child))
       (catch Exception e
         (vswap! state update-in [:tasks id]
                 assoc :status :failed-to-spawn :reason (ex-message e)
-                :start (now) :end (now))))))
+                :start (utils/now) :end (utils/now))))))
 
 (defn- spawn-new [task-handler]
   (locking (:state task-handler)
@@ -59,45 +59,9 @@
         (start-process task-handler id)
         (recur)))))
 
-(defn- handle-messages [{:keys [state queue local]}]
+(defn- handle-messages [{:keys [queue] :as task-handler}]
   (when-let [msg (queue/pop-message! queue)]
-    (case (:type msg)
-      :group-add
-      (do (locking state
-            (vswap! state assoc-in [:groups (:name msg)]
-                    {:parallel-tasks (:parallel-tasks msg)
-                     :status :running}))
-          (vswap! local assoc-in [:children (:name msg)] (sorted-map)))
-      :group-remove
-      (do (locking state
-            (vswap! state update :groups dissoc (:name msg)))
-          (vswap! local update :children dissoc (:name msg)))
-      :send
-      (let [{:keys [task-id input]} msg
-            child (children/get-child (:children @local) task-id)]
-        (doto (.getOutputStream ^Process child)
-          (.write (.getBytes ^String input))
-          (.flush)))
-      :kill
-      (locking state
-        (let [task-ids (cond (:group msg)
-                             (for [task (vals (:tasks @state))
-                                   :when (and (= (:group task) (:group msg))
-                                              (= (:status task) :running))]
-                               (:id task))
-
-                             (seq (:task-ids msg))
-                             (:task-ids msg)
-
-                             :else
-                             (for [task (vals (:tasks @state))
-                                   :when (= (:status task) :running)]
-                               (:id task)))]
-          (doseq [task-id task-ids
-                  :let [child (children/get-child (:children @local) task-id)]]
-            (vswap! state update-in [:tasks task-id] assoc
-                    :status :killed :end (now))
-            (.destroy ^Process child)))))
+    (messages/handle-message task-handler msg)
     true))
 
 (defn- handle-finished-tasks [{:keys [state local]}]
@@ -115,7 +79,7 @@
                          (update-in [:tasks task] assoc
                                     :status (if (= code 0) :success :failed)
                                     :code code
-                                    :end (now))))
+                                    :end (utils/now))))
                      @state)
              (vreset! state)))
       (doseq [[group worker _ _] finished]
@@ -126,7 +90,7 @@
     (doseq [[id task] (:tasks @state)
             :when (and (= (:status task) :stashed)
                        (when-let [^Date t (:enqueue-at task)]
-                         (.before t (now))))]
+                         (.before t (utils/now))))]
       (vswap! state assoc-in [:tasks id :status] :queued))))
 
 (defn- check-failed-dependencies [{:keys [state]}]
@@ -136,7 +100,7 @@
                        (some #(task/task-failed? (get-in @state [:tasks %]))
                              (:dependencies task)))]
       (vswap! state update-in [:tasks id] assoc
-              :status :dependency-failed :start (now) :end (now)))))
+              :status :dependency-failed :start (utils/now) :end (utils/now)))))
 
 (defn- step [handler]
   (let [ret (handle-messages handler)]

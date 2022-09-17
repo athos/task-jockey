@@ -10,3 +10,6 @@
 (defn stringify-date [^Date date]
   (let [formatter (SimpleDateFormat. "HH:mm:ss")]
     (.format formatter date)))
+
+(defn now ^Date []
+  (Date.))
