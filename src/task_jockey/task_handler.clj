@@ -13,16 +13,17 @@
    :local (volatile! {:children {"default" (sorted-map)}})})
 
 (defn- next-task-id [{:keys [state local]}]
-  (->> (:tasks @state)
-       (filter (fn [[_ {:keys [group] :as task}]]
-                 (and (= (:status task) :queued)
-                      (let [running-tasks (get-in @local [:children group])]
-                        (< (count running-tasks)
-                           (get-in @state [:groups group :parallel-tasks])))
-                      (let [deps (:dependencies task)]
-                        (or (empty? deps)
-                            (every? #(task/task-done? (get (:tasks @state) %)) deps))))))
-       ffirst))
+  (->> (for [[task-id {:keys [group] :as task}] (:tasks @state)
+             :when (= (:status task) :queued)
+             :let [running-tasks (get-in @local [:children group])]
+             :when (< (count running-tasks)
+                      (get-in @state [:groups group :parallel-tasks]))
+             :let [deps (:dependencies task)]
+             :when (or (empty? deps)
+                       (every? #(task/task-done? (get (:tasks @state) %))
+                               deps))]
+         task-id)
+       first))
 
 (defn- now ^Date [] (Date.))
 
