@@ -1,5 +1,6 @@
 (ns task-jockey.task-handler
   (:require [clojure.java.io :as io]
+            [task-jockey.children :as children]
             [task-jockey.log :as log]
             [task-jockey.message-queue :as queue]
             [task-jockey.settings :as settings]
@@ -23,20 +24,11 @@
                             (every? #(task/task-done? (get (:tasks @state) %)) deps))))))
        ffirst))
 
-(defn- next-group-worker [{:keys [local]} group]
-  (let [pool (get-in @local [:children group])]
-    (or (->> pool
-             (keep-indexed (fn [i [worker-id _]]
-                             (when (not= i worker-id)
-                               i)))
-             first)
-        (count pool))))
-
 (defn- now ^Date [] (Date.))
 
-(defn- start-process [task-handler id]
-  (let [task (get-in @(:state task-handler) [:tasks id])
-        worker-id (next-group-worker task-handler (:group task))
+(defn- start-process [{:keys [state local]} id]
+  (let [task (get-in @state [:tasks id])
+        worker-id (children/next-group-worker (:children @local) (:group task))
         log-file (log/log-file-path id)
         command (into-array String ["sh" "-c" (:command task)])
         pb (doto (ProcessBuilder. ^"[Ljava.lang.String;" command)
@@ -50,13 +42,12 @@
       (.put "TASK_JOCKEY_WORKER_ID" (str worker-id)))
     (try
       (let [child (.start pb)]
-        (vswap! (:state task-handler) update-in [:tasks id]
+        (vswap! state update-in [:tasks id]
                 assoc :status :running :start (now))
-        (vswap! (:local task-handler) assoc-in
-                [:children (:group task) worker-id]
-                {:task id :child child}))
+        (vswap! local update :children
+                children/add-child (:group task) worker-id id child))
       (catch Exception e
-        (vswap! (:state task-handler) update-in [:tasks id]
+        (vswap! state update-in [:tasks id]
                 assoc :status :failed-to-spawn :reason (ex-message e)
                 :start (now) :end (now))))))
 
@@ -82,11 +73,7 @@
           (vswap! local update :children dissoc (:name msg)))
       :send
       (let [{:keys [task-id input]} msg
-            child (->> (for [[_ pool] (:children @local)
-                             [_ {:keys [task child]}] pool
-                             :when (= task task-id)]
-                         child)
-                       first)]
+            child (children/get-child (:children @local) task-id)]
         (doto (.getOutputStream ^Process child)
           (.write (.getBytes ^String input))
           (.flush)))
@@ -106,11 +93,7 @@
                                    :when (= (:status task) :running)]
                                (:id task)))]
           (doseq [task-id task-ids
-                  :let [child (->> (for [[_ pool] (:children @local)
-                                         [_ {:keys [task child]}] pool
-                                         :when (= task-id task)]
-                                     child)
-                                   first)]]
+                  :let [child (children/get-child (:children @local) task-id)]]
             (vswap! state update-in [:tasks task-id] assoc
                     :status :killed :end (now))
             (.destroy ^Process child)))))
