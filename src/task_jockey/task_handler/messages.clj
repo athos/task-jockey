@@ -42,3 +42,7 @@
         (vswap! state update-in [:tasks task-id] assoc
                 :status :killed :end (utils/now))
         (.destroy ^Process child)))))
+
+(defmethod handle-message :reset [{:keys [local] :as task-handler} _]
+  (vswap! local assoc :full-reset? true)
+  (handle-message task-handler {:type :kill :task-ids #{}}))

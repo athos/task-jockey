@@ -86,6 +86,10 @@
     (with-client opts client/wait group (utils/->coll tasks)
       (if quiet (constantly nil) callback))))
 
+(defn reset [opts]
+  (let [res (with-client opts client/reset)]
+    (println (:message res))))
+
 (defn parallel [{:keys [n group] :as opts}]
   (let [res (with-client opts client/parallel group n)]
     (println (:message res))))

@@ -103,6 +103,9 @@
         (Thread/sleep 2000)
         (recur false (into previous-statuses changed))))))
 
+(defn reset [client]
+  (send-and-recv client :reset))
+
 (defn parallel [client group tasks]
   (send-and-recv client :parallel
                  :group (or group "default")

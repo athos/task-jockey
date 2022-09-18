@@ -10,6 +10,9 @@
          child)
        first))
 
+(defn has-active-tasks? [children]
+  (some (fn [[_ pool]] (boolean (seq pool))) children))
+
 (defn next-group-worker [children group]
   (let [pool (get children group)]
     (or (->> pool

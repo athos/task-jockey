@@ -94,6 +94,10 @@
                     (utils/->coll ids-or-group))
                   (if callback callback' (constantly nil))))))
 
+(defn reset []
+  (client/reset (current-client))
+  nil)
+
 (defn parallel [n & {:keys [group]}]
   (let [res (client/parallel (current-client) group n)]
     (println (:message res))))

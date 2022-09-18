@@ -128,6 +128,10 @@
     (queue/push-message! system/message-queue msg)
     (success "Tasks are being killed")))
 
+(defmethod handle-message :reset [_]
+  (queue/push-message! system/message-queue {:type :reset})
+  (success "Everything is being reset right now"))
+
 (defmethod handle-message :group-list [_]
   (let [groups (locking system/state
                  (get @system/state :groups))]

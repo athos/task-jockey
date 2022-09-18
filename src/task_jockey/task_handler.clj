@@ -82,8 +82,10 @@
                                     :end (utils/now))))
                      @state)
              (vreset! state)))
-      (doseq [[group worker _ _] finished]
-        (vswap! local update-in [:children group] dissoc worker)))))
+      (doseq [[group worker task _] finished]
+        (vswap! local update-in [:children group] dissoc worker)
+        (when (:full-reset? @local)
+          (log/clean-log-file task))))))
 
 (defn- enqueue-delayed-tasks [{:keys [state]}]
   (locking state
@@ -102,13 +104,22 @@
       (vswap! state update-in [:tasks id] assoc
               :status :dependency-failed :start (utils/now) :end (utils/now)))))
 
-(defn- step [handler]
+(defn- handle-reset [{:keys [state local]}]
+  (when (children/has-active-tasks? (:children @local))
+    (locking state
+      (vswap! state assoc :tasks (sorted-map)))
+    (log/reset-log-dir)
+    (vswap! local assoc :full-reset? false)))
+
+(defn- step [{:keys [local] :as handler}]
   (let [ret (handle-messages handler)]
     (doto handler
       (handle-finished-tasks)
       (enqueue-delayed-tasks)
-      (check-failed-dependencies)
-      (spawn-new))
+      (check-failed-dependencies))
+    (if (:full-reset? @local)
+      (handle-reset handler)
+      (spawn-new handler))
     ret))
 
 (defn restart-handler [handler {:keys [sync?] :as opts}]
