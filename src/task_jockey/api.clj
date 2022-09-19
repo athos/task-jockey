@@ -1,4 +1,4 @@
-(ns task-jockey.repl
+(ns task-jockey.api
   (:refer-clojure :exclude [send])
   (:require [task-jockey.client :as client]
             [task-jockey.log :as log]
