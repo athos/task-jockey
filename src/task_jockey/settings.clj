@@ -12,7 +12,8 @@
      ~@body))
 
 (def default-settings
-  {:base-dir ".task-jockey"})
+  {:base-dir ".task-jockey"
+   :host "localhost"})
 
 (defn load-settings [opts]
   (merge default-settings opts))

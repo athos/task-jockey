@@ -6,10 +6,8 @@
             [task-jockey.system :as system]
             [task-jockey.utils :as utils]))
 
-(defn- with-client
-  [{:keys [host port] :or {host "localhost" port 5555}:as opts} f & args]
-  (let [opts' (assoc opts :host host :port port)
-        client (system/make-socket-client opts')]
+(defn- with-client [opts f & args]
+  (let [client (system/make-socket-client opts)]
     (apply f client args)))
 
 (defn add [{:keys [cmd] :as opts}]
