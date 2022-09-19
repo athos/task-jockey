@@ -31,7 +31,9 @@
     (.close socket)))
 
 (defn make-socket-transport [{:keys [host port]}]
-  (let [socket (Socket. host port)
+  (when (nil? port)
+    (throw (ex-info "Port must be specified with :port" {})))
+  (let [socket (Socket. ^String host (int port))
         in (PushbackReader. (io/reader (.getInputStream socket)))
         out (io/writer (.getOutputStream socket))]
     (->SocketTransport socket in out)))

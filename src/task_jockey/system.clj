@@ -29,8 +29,10 @@
       (prn port))))
 
 (defn- load-port-file [settings]
-  (with-open [r (PushbackReader. (io/reader (port-file settings)))]
-    (edn/read r)))
+  (let [port-file (port-file settings)]
+    (when (.exists port-file)
+      (with-open [r (PushbackReader. (io/reader port-file))]
+        (edn/read r)))))
 
 (defn- delete-port-file [settings]
   (let [port-file (port-file settings)]
