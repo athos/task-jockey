@@ -4,7 +4,8 @@
             [task-jockey.log :as log]
             [task-jockey.state :as state]
             [task-jockey.system :as system]
-            [task-jockey.utils :as utils]))
+            [task-jockey.utils :as utils])
+  (:import [java.io Closeable]))
 
 (def ^:private system nil)
 
@@ -117,7 +118,7 @@
     (println (:message res))))
 
 (defn- stop-system* [system]
-  (.close (current-client))
+  (.close ^Closeable (current-client))
   (system/stop-system system))
 
 (defn stop-system! []

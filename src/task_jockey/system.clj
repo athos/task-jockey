@@ -51,8 +51,8 @@
   ([opts] (start-system nil opts))
   ([system opts]
    (let [{:keys [port] :as settings} (settings/load-settings opts)
-         logs-dir (settings/with-settings settings
-                    (log/logs-dir))]
+         ^File logs-dir (settings/with-settings settings
+                          (log/logs-dir))]
      (stop-system system)
      (.mkdir logs-dir)
      (ensure-port-file-not-existing settings)
