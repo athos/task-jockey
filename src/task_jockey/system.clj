@@ -56,6 +56,9 @@
      (ensure-port-file-not-existing settings)
      (let [server (when port (server/start-server settings))]
        (save-port-file settings (or port :local))
+       (when (:cleanup-on-exit settings)
+         (.addShutdownHook (Runtime/getRuntime)
+                           (Thread. #(delete-port-file settings))))
        (cond-> {:settings settings}
          server (assoc :server server)
          ;; handler should be started because it might be sync'ed

@@ -107,4 +107,5 @@
     (println (:message res))))
 
 (defn start-server [& {:keys [host] :or {host "localhost"} :as opts}]
-  (system/start-system (assoc opts :host host :sync? true)))
+  (let [opts' (assoc opts :host host :sync? true :cleanup-on-exit true)]
+    (system/start-system opts')))
