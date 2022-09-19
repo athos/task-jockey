@@ -3,8 +3,7 @@
             [task-jockey.settings :as settings]
             [task-jockey.task :as task]
             [task-jockey.utils :as utils])
-  (:import [java.io File]
-           [java.nio.file Files]))
+  (:import [java.io File]))
 
 (defn logs-dir ^File []
   (io/file (:base-dir (settings/settings)) "task_logs"))
@@ -37,13 +36,13 @@
     (newline)))
 
 (defn clean-log-file [task-id]
-  (Files/delete (.toPath (log-file-path task-id))))
+  (io/delete-file (log-file-path task-id)))
 
 (defn reset-log-dir []
   ;; file-seq's first element is the directory itself,
   ;; which should be ignored here
   (doseq [^File file (rest (file-seq (logs-dir)))]
-    (Files/delete (.toPath file))))
+    (io/delete-file file)))
 
 (defn follow-logs [state task-id]
   (with-open [r (io/reader (log-file-path task-id))]

@@ -9,9 +9,7 @@
             [task-jockey.system-state :as system]
             [task-jockey.task-handler :as handler]
             [task-jockey.transport :as transport])
-  (:import [java.io File PushbackReader]
-           [java.nio.file Files]
-           [java.nio.file.attribute FileAttribute]))
+  (:import [java.io File PushbackReader]))
 
 (defn- port-file ^File [{:keys [base-dir]}]
   (io/file base-dir "task-jockey.port"))
@@ -43,9 +41,9 @@
   ([system opts]
    (let [{:keys [port] :as settings} (settings/load-settings opts)
          logs-dir (settings/with-settings settings
-                    (.toPath (log/logs-dir)))]
+                    (log/logs-dir))]
      (stop-system system)
-     (Files/createDirectories logs-dir (into-array FileAttribute []))
+     (.mkdir logs-dir)
      (let [server (when port (server/start-server settings))]
        (save-port-file settings (or port :local))
        (cond-> {:settings settings}
