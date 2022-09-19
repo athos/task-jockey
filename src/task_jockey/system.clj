@@ -14,7 +14,16 @@
 (defn- port-file ^File [{:keys [base-dir]}]
   (io/file base-dir "task-jockey.port"))
 
+(defn- ensure-port-file-not-existing [settings]
+  (let [port-file (port-file settings)]
+    (when (.exists port-file)
+      (let [msg (str "Port file already exists and another server seems to be running.\n"
+                     "Stop the server first or delete the file manually: "
+                     (.getCanonicalPath port-file))]
+        (throw (ex-info msg {}))))))
+
 (defn- save-port-file [settings port]
+  (ensure-port-file-not-existing settings)
   (with-open [w (io/writer (port-file settings))]
     (binding [*out* w]
       (prn port))))
@@ -44,6 +53,7 @@
                     (log/logs-dir))]
      (stop-system system)
      (.mkdir logs-dir)
+     (ensure-port-file-not-existing settings)
      (let [server (when port (server/start-server settings))]
        (save-port-file settings (or port :local))
        (cond-> {:settings settings}
