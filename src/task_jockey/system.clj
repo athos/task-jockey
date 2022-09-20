@@ -39,12 +39,14 @@
     (when (.exists port-file)
       (.delete port-file))))
 
-(defn stop-system [{:keys [handler server settings]}]
+(defn stop-system [{:keys [handler server settings shutdown-hook]}]
   (when server
     (server/stop-server server))
   (when handler
     (handler/stop-handler handler))
   (delete-port-file settings)
+  (when shutdown-hook
+    (.removeShutdownHook (Runtime/getRuntime) ^Thread shutdown-hook))
   nil)
 
 (defn start-system
@@ -56,14 +58,13 @@
      (stop-system system)
      (.mkdirs logs-dir)
      (ensure-port-file-not-existing settings)
-     (let [server (when port (server/start-server settings))]
+     (let [server (when port (server/start-server settings))
+           shutdown-hook (Thread. #(delete-port-file settings))]
        (save-port-file settings (or port :local))
-       (when (:cleanup-on-exit settings)
-         (.addShutdownHook (Runtime/getRuntime)
-                           (Thread. #(delete-port-file settings))))
-       (cond-> {:settings settings}
+       (.addShutdownHook (Runtime/getRuntime) shutdown-hook)
+       (cond-> {:settings settings, :shutdown-hook shutdown-hook}
          server (assoc :server server)
-         ;; handler should be started because it might be sync'ed
+         ;; handler should be started last because it might be sync'ed
          true (assoc :handler
                      (if system
                        (handler/restart-handler (:handler system) settings)

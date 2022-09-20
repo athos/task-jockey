@@ -107,5 +107,4 @@
     (println (:message res))))
 
 (defn start-server [& {:as opts}]
-  (let [opts' (assoc opts :sync? true :cleanup-on-exit true)]
-    (system/start-system opts')))
+  (system/start-system (assoc opts :sync? true)))
