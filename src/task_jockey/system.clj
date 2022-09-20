@@ -54,7 +54,7 @@
          ^File logs-dir (settings/with-settings settings
                           (log/logs-dir))]
      (stop-system system)
-     (.mkdir logs-dir)
+     (.mkdirs logs-dir)
      (ensure-port-file-not-existing settings)
      (let [server (when port (server/start-server settings))]
        (save-port-file settings (or port :local))
