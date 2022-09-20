@@ -106,6 +106,6 @@
   (let [res (with-client opts client/group-rm (str name))]
     (println (:message res))))
 
-(defn start-server [& {:keys [host] :or {host "localhost"} :as opts}]
-  (let [opts' (assoc opts :host host :sync? true :cleanup-on-exit true)]
+(defn start-server [& {:as opts}]
+  (let [opts' (assoc opts :sync? true :cleanup-on-exit true)]
     (system/start-system opts')))

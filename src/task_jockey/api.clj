@@ -129,21 +129,19 @@
   (when system
     (stop-system* system)))
 
-(defn start-system! [& {:keys [host] :or {host "localhost"} :as opts}]
+(defn start-system! [& {:as opts}]
   (letfn [(start! [system]
             (ensure-stopped system)
-            (let [opts' (assoc opts :host host)
-                  system' (system/start-system system opts')]
-              (assoc system' :client (system/make-client opts'))))]
+            (-> (system/start-system system opts)
+                (assoc :client (system/make-client opts))))]
     (alter-var-root #'system start!)
     :started))
 
-(defn connect! [& {:keys [host] :or {host "localhost"} :as opts}]
+(defn connect! [& {:as opts}]
   (alter-var-root #'system
                   (fn [system]
                     (ensure-stopped system)
-                    (let [opts' (assoc opts :host host)]
-                      {:client (system/make-socket-client opts')})))
+                    {:client (system/make-socket-client opts)}))
   :connected)
 
 (defn disconnect! []
