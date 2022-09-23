@@ -1,8 +1,10 @@
 (ns task-jockey.task-handler
   (:require [clojure.java.io :as io]
+            task-jockey.child
             [task-jockey.children :as children]
             [task-jockey.log :as log]
             [task-jockey.message-queue :as queue]
+            [task-jockey.protocols :as proto]
             [task-jockey.settings :as settings]
             [task-jockey.task :as task]
             [task-jockey.task-handler.messages :as messages]
@@ -66,9 +68,9 @@
 
 (defn- handle-finished-tasks [{:keys [state local]}]
   (let [finished (for [[group pool] (:children @local)
-                       [worker {:keys [task ^Process child]}] pool
-                       :when (not (.isAlive child))]
-                   [group worker task (.exitValue child)])]
+                       [worker {:keys [task child]}] pool
+                       :when (proto/done? child)]
+                   [group worker task (proto/result child)])]
     (when (seq finished)
       (locking state
         (->> finished

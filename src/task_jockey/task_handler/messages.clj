@@ -1,5 +1,7 @@
 (ns task-jockey.task-handler.messages
-  (:require [task-jockey.children :as children]
+  (:require task-jockey.child
+            [task-jockey.children :as children]
+            [task-jockey.protocols :as proto]
             [task-jockey.utils :as utils]))
 
 (defmulti handle-message (fn [_task-handler msg] (:type msg)))
@@ -18,9 +20,7 @@
 
 (defmethod handle-message :send [{:keys [local]} {:keys [task-id input]}]
   (let [child (children/get-child (:children @local) task-id)]
-    (doto (.getOutputStream ^Process child)
-      (.write (.getBytes ^String input))
-      (.flush))))
+    (proto/write-input child input)))
 
 (defmethod handle-message :kill [{:keys [state local]} {:keys [group task-ids]}]
   (locking state
@@ -41,7 +41,7 @@
               :let [child (children/get-child (:children @local) task-id)]]
         (vswap! state update-in [:tasks task-id] assoc
                 :status :killed :end (utils/now))
-        (.destroy ^Process child)))))
+        (proto/kill child)))))
 
 (defmethod handle-message :reset [{:keys [local] :as task-handler} _]
   (vswap! local assoc :full-reset? true)
