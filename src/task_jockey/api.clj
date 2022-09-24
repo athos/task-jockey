@@ -2,10 +2,10 @@
   (:refer-clojure :exclude [send])
   (:require [task-jockey.client :as client]
             [task-jockey.log :as log]
+            [task-jockey.protocols :as proto]
             [task-jockey.state :as state]
             [task-jockey.system :as system]
-            [task-jockey.utils :as utils])
-  (:import [java.io Closeable]))
+            [task-jockey.utils :as utils]))
 
 (def ^:private system nil)
 
@@ -118,8 +118,8 @@
     (println (:message res))))
 
 (defn- stop-system* [system]
-  (when-let [^Closeable client (:client system)]
-    (.close client))
+  (when-let [client (:client system)]
+    (proto/close client))
   (system/stop-system system))
 
 (defn stop-system! []

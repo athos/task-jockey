@@ -3,13 +3,12 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [task-jockey.protocols :as proto]
-            [task-jockey.task :as task])
-  (:import [java.io Closeable]))
+            [task-jockey.task :as task]))
 
 (defrecord Client [transport settings]
-  Closeable
+  proto/ICloseable
   (close [_]
-    (.close ^Closeable transport)))
+    (proto/close transport)))
 
 (defn- send-and-recv [client type & fields]
   (let [msg (apply array-map :type type fields)]

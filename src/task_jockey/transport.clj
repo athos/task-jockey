@@ -3,7 +3,7 @@
             [clojure.java.io :as io]
             [task-jockey.protocols :as proto]
             [task-jockey.settings :as settings])
-  (:import [java.io Closeable PushbackReader]
+  (:import [java.io PushbackReader]
            [java.net Socket]))
 
 (defn- send-message* [out msg]
@@ -26,7 +26,7 @@
           (do (callback (dissoc res :continue?))
               (recur))
           res))))
-  Closeable
+  proto/ICloseable
   (close [_]
     (.close socket)))
 
@@ -50,7 +50,7 @@
           (do (callback (dissoc res :cont))
               (recur (cont)))
           res))))
-  Closeable
+  proto/ICloseable
   (close [_]))
 
 (defn make-fn-transport [handler settings]
