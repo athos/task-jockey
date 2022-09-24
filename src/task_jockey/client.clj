@@ -62,7 +62,7 @@
 
 (defn follow [client task-id callback]
   (let [msg {:type :follow, :task-id task-id}]
-    (proto/send-message-with-callback client msg callback)))
+    (proto/send-message-with-callback (:transport client) msg callback)))
 
 (defn send [client task-id input]
   (send-and-recv client :send
