@@ -1,40 +1,55 @@
 (ns task-jockey.server
-  (:require [clojure.core.server :as server]
-            [clojure.edn :as edn]
+  (:require [clojure.edn :as edn]
+            [clojure.java.io :as io]
             [task-jockey.message-handler :as message]
-            [task-jockey.settings :as settings]))
+            [task-jockey.settings :as settings])
+  (:import [java.io PushbackReader]
+           [java.net InetAddress Socket ServerSocket SocketException]))
 
-(defrecord Server [socket name])
+(defrecord Server [socket host port])
 
-(def send-message prn)
-(defn recv-message []
-  (edn/read {:eof nil} *in*))
+(defn- send-message [out msg]
+  (binding [*out* out]
+    (prn msg)))
 
-(defn accept [opts]
+(defn- recv-message [in]
+  (edn/read {:eof nil} in))
+
+(defn- accept [^Socket conn in out opts]
   (settings/with-settings opts
-    (loop []
-      (when-let [msg (recv-message)]
-        (let [res (message/handle-message msg)
-              res (loop [{:keys [cont] :as res} res]
-                    (if cont
-                      (let [res' (-> res
-                                     (assoc :continue? true)
-                                     (dissoc :cont))]
-                        (send-message res')
-                        (recur (cont)))
-                      res))]
-          (send-message res)
-          (recur))))))
+    (try
+      (loop []
+        (when-let [msg (recv-message in)]
+          (let [res (message/handle-message msg)
+                res (loop [{:keys [cont] :as res} res]
+                      (if cont
+                        (let [res' (-> res
+                                       (assoc :continue? true)
+                                       (dissoc :cont))]
+                          (send-message out res')
+                          (recur (cont)))
+                        res))]
+            (send-message out res)
+            (recur))))
+      (finally
+        (.close conn)))))
 
 (defn start-server [{:keys [host port] :as opts}]
-  (let [name (format "task-jockey.%d" port)
-        opts' (assoc opts
-                     :name name
-                     :accept `accept
-                     :args [opts]
-                     :host host
-                     :port port)]
-    (->Server (server/start-server opts') name)))
+  (let [address (InetAddress/getByName host)
+        socket (ServerSocket. port 0 address)]
+    (future
+      (loop []
+        (when (not (.isClosed socket))
+          (try
+            (let [conn (.accept socket)
+                  in (PushbackReader. (io/reader (.getInputStream conn)))
+                  out (io/writer (.getOutputStream conn))]
+              (future
+                (accept conn in out opts)))
+            (catch SocketException _disconnect))
+          (recur))))
+    (->Server socket host port)))
 
-(defn stop-server [server]
-  (server/stop-server (:name server)))
+(defn stop-server [{:keys [^ServerSocket socket]}]
+  (when-not (.isClosed socket)
+    (.close socket)))
