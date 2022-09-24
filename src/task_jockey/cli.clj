@@ -107,4 +107,4 @@
     (println (:message res))))
 
 (defn start-server [& {:as opts}]
-  (system/start-system (assoc opts :sync? true)))
+  (system/start-system (assoc opts :server true :sync? true)))

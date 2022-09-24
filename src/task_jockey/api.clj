@@ -132,8 +132,10 @@
 (defn start-system! [& {:as opts}]
   (letfn [(start! [system]
             (ensure-stopped system)
-            (-> (system/start-system system opts)
-                (assoc :client (system/make-client opts))))]
+            (let [system (system/start-system system opts)
+                  port (get-in system [:server :port])
+                  client (system/make-client (assoc opts :port port))]
+              (assoc system :client client)))]
     (alter-var-root #'system start!)
     :started))
 

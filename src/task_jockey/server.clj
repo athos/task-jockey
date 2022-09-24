@@ -34,7 +34,7 @@
       (finally
         (.close conn)))))
 
-(defn start-server [{:keys [host port] :as opts}]
+(defn start-server [{:keys [host port] :or {port 0} :as opts}]
   (let [address (InetAddress/getByName host)
         socket (ServerSocket. port 0 address)]
     (future
@@ -48,7 +48,7 @@
                 (accept conn in out opts)))
             (catch SocketException _disconnect))
           (recur))))
-    (->Server socket host port)))
+    (->Server socket host (.getLocalPort socket))))
 
 (defn stop-server [{:keys [^ServerSocket socket]}]
   (when-not (.isClosed socket)

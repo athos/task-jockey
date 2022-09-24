@@ -52,15 +52,15 @@
 (defn start-system
   ([opts] (start-system nil opts))
   ([system opts]
-   (let [{:keys [port] :as settings} (settings/load-settings opts)
+   (let [{:keys [server port] :as settings} (settings/load-settings opts)
          ^File logs-dir (settings/with-settings settings
                           (log/logs-dir))]
      (stop-system system)
      (.mkdirs logs-dir)
      (ensure-port-file-not-existing settings)
-     (let [server (when port (server/start-server settings))
+     (let [server (when (or server port) (server/start-server settings))
            shutdown-hook (Thread. #(delete-port-file settings))]
-       (save-port-file settings (or port :local))
+       (save-port-file settings (or (:port server) :local))
        (.addShutdownHook (Runtime/getRuntime) shutdown-hook)
        (cond-> {:settings settings, :shutdown-hook shutdown-hook}
          server (assoc :server server)
