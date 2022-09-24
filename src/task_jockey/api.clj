@@ -11,7 +11,7 @@
 
 (defn- current-client []
   (or (:client system)
-      (throw (ex-info "Call task-jockey.repl/start-system! first" {}))))
+      (throw (ex-info "Call task-jockey.api/start-system! first" {}))))
 
 (defn add [command & {:as opts}]
   (let [opts' (cond-> (assoc opts :command command)
