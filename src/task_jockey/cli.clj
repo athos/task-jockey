@@ -63,7 +63,8 @@
   (with-client opts client/follow task
     (fn [{:keys [content]}]
       (print content)
-      (flush))))
+      (flush)))
+  nil)
 
 (defn send [{:keys [task input] :as opts}]
   (let [res (with-client opts client/send task (str input))]
