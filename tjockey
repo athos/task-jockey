@@ -1,0 +1,15 @@
+#!/usr/bin/env bb
+
+(require '[babashka.deps :as deps]
+         '[clojure.edn :as edn])
+
+(deps/add-deps '{:deps {io.github.athos/task-jockey {:git/sha "9ff99c18240ab12dd6b9d06f0bd08b9b6d814aa7"}}})
+
+(require 'task-jockey.cli)
+
+(defn -main [command & args]
+  (let [op (ns-resolve 'task-jockey.cli (symbol command))
+        opts (into {} (comp (map edn/read-string) (partition-all 2)) args)]
+    (op opts)))
+
+(apply -main *command-line-args*)
