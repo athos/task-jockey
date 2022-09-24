@@ -118,7 +118,8 @@
     (println (:message res))))
 
 (defn- stop-system* [system]
-  (.close ^Closeable (current-client))
+  (when-let [^Closeable client (:client system)]
+    (.close client))
   (system/stop-system system))
 
 (defn stop-system! []
