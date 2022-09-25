@@ -1,6 +1,5 @@
 (ns task-jockey.task-handler
-  (:require [clojure.java.io :as io]
-            task-jockey.child
+  (:require [task-jockey.child :as child]
             [task-jockey.children :as children]
             [task-jockey.log :as log]
             [task-jockey.message-queue :as queue]
@@ -29,22 +28,11 @@
          task-id)
        first))
 
-(defn- start-process [{:keys [state local]} id]
+(defn- start-task [{:keys [state local]} id]
   (let [task (get-in @state [:tasks id])
-        worker-id (children/next-group-worker (:children @local) (:group task))
-        log-file (log/log-file-path id)
-        command (into-array String ["sh" "-c" (:command task)])
-        pb (doto (ProcessBuilder. ^"[Ljava.lang.String;" command)
-             (.redirectOutput log-file)
-             (.redirectError log-file)
-             (.directory (io/file (:dir task))))]
-    (doto (.environment pb)
-      (.clear)
-      (.putAll (:envs task))
-      (.put "TASK_JOCKEY_GROUP" (:group task))
-      (.put "TASK_JOCKEY_WORKER_ID" (str worker-id)))
+        worker-id (children/next-group-worker (:children @local) (:group task))]
     (try
-      (let [child (.start pb)]
+      (let [child (child/start-task task worker-id)]
         (vswap! state update-in [:tasks id]
                 assoc :status :running :start (utils/now))
         (vswap! local update :children
@@ -58,7 +46,7 @@
   (locking (:state task-handler)
     (loop []
       (when-let [id (next-task-id task-handler)]
-        (start-process task-handler id)
+        (start-task task-handler id)
         (recur)))))
 
 (defn- handle-messages [{:keys [queue] :as task-handler}]

@@ -19,18 +19,13 @@
 (def ^:private ^SimpleDateFormat datetime-fmt
   (SimpleDateFormat. "yyyy-MM-dd HH:mm:ss"))
 
-(defmethod handle-message :add
-  [{:keys [command group dir envs dependencies stashed enqueue-at label]}]
-  (let [task {:command command
-              :status (if (or stashed enqueue-at) :stashed :queued)
-              :group group
-              :dir dir
-              :envs envs
-              :dependencies dependencies
-              :enqueue-at enqueue-at
-              :label label}
+(defmethod handle-message :add [{:keys [stashed enqueue-at] :as task}]
+  (let [task' (-> task
+                  (select-keys [:task/type :command :group :dir :envs
+                                :dependencies :enqueue-at :label])
+                  (assoc :status (if (or stashed enqueue-at) :stashed :queued)))
         state (locking system/state
-                (vswap! system/state state/add-task task))
+                (vswap! system/state state/add-task task'))
         task-id (ffirst (rseq (:tasks state)))]
     (if enqueue-at
       (success (format "New task added (id %d). It will be enqueued at %s."

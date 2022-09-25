@@ -1,8 +1,6 @@
 (ns task-jockey.client
   (:refer-clojure :exclude [send])
-  (:require [clojure.java.io :as io]
-            [clojure.string :as str]
-            [task-jockey.protocols :as proto]
+  (:require [task-jockey.protocols :as proto]
             [task-jockey.task :as task]))
 
 (defrecord Client [transport settings]
@@ -14,23 +12,17 @@
   (let [msg (apply array-map :type type fields)]
     (proto/send-message (:transport client) msg)))
 
-(defn- envs []
-  (into {} (System/getenv)))
-
-(defn add [client {:keys [command group dir after stashed delay label]}]
-  (let [cmd (if (coll? command)
-              (str/join \space (map pr-str command))
-              (str command))
-        dir (or dir (System/getProperty "user.dir"))]
-    (send-and-recv client :add
-                   :command cmd
-                   :group (or (some-> group str) "default")
-                   :dir (.getCanonicalPath (io/file dir))
-                   :envs (envs)
-                   :dependencies (set after)
-                   :stashed stashed
-                   :enqueue-at delay
-                   :label (some-> label str))))
+(defn add [client {:keys [command group after stashed delay label]}]
+  (let [task {:command command
+              :group (or (some-> group str) "default")
+              :dependencies (set after)
+              :stashed stashed
+              :enqueue-at delay
+              :label (some-> label str)}]
+    (proto/send-message (:transport client)
+                        (-> task
+                            task/prepare-task
+                            (assoc :type :add)))))
 
 (defn status [client]
   (send-and-recv client :status))
