@@ -30,3 +30,6 @@
 (defmethod prepare-task clojure.lang.IPersistentVector [task]
   (let [cmd (str/join \space (map pr-str (:command task)))]
     (prepare-task (assoc task :command cmd))))
+
+(defmethod prepare-task clojure.lang.ISeq [task]
+  (assoc task :task/type :thread))

@@ -10,5 +10,6 @@
 (defprotocol IChild
   (done? [this])
   (result [this])
+  (succeeded? [this result])
   (kill [this])
   (write-input [this input]))

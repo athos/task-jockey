@@ -57,22 +57,23 @@
 (defn- handle-finished-tasks [{:keys [state local]}]
   (let [finished (for [[group pool] (:children @local)
                        [worker {:keys [task child]}] pool
-                       :when (proto/done? child)]
-                   [group worker task (proto/result child)])]
+                       :when (proto/done? child)
+                       :let [res (proto/result child)]]
+                   [group worker task res (proto/succeeded? child res)])]
     (when (seq finished)
       (locking state
         (->> finished
-             (reduce (fn [state [_ _ task code]]
+             (reduce (fn [state [_ _ task res ok?]]
                        (cond-> state
                          (not= (:status (get-in state [:tasks task]))
                                :killed)
                          (update-in [:tasks task] assoc
-                                    :status (if (= code 0) :success :failed)
-                                    :code code
+                                    :status (if ok? :success :failed)
+                                    :result res
                                     :end (utils/now))))
                      @state)
              (vreset! state)))
-      (doseq [[group worker task _] finished]
+      (doseq [[group worker task _ _] finished]
         (vswap! local update-in [:children group] dissoc worker)
         (when (:full-reset? @local)
           (log/clean-log-file task))))))
