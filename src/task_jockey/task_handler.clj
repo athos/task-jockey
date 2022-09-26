@@ -1,5 +1,6 @@
 (ns task-jockey.task-handler
-  (:require [task-jockey.child :as child]
+  (:require [clojure.tools.logging :as logging]
+            [task-jockey.child :as child]
             [task-jockey.children :as children]
             [task-jockey.log :as log]
             [task-jockey.message-queue :as queue]
@@ -113,18 +114,26 @@
       (spawn-new handler))
     ret))
 
-(defn stop-handler [handler]
-  (future-cancel (:loop handler)))
+(defn stop-handler [{:keys [local loop]}]
+  (logging/debug "Stopped message loop")
+  (vswap! local assoc :stopped true)
+  (future-cancel loop))
 
-(defn restart-handler [handler {:keys [sync?] :as opts}]
+(defn restart-handler [{:keys [local] :as handler} {:keys [sync?] :as opts}]
   (let [f (fn []
             (settings/with-settings opts
-              (loop []
-                (when-not (step handler)
-                  (Thread/sleep 200))
-                (recur))))]
+              (try
+                (loop []
+                  (when-not (step handler)
+                    (Thread/sleep 200))
+                  (recur))
+                (catch Throwable t
+                  (when-not (:stopped @local)
+                    (logging/error t "Message loop terminated abruptly"))))))]
     (when (:loop handler)
       (stop-handler handler))
+    (vswap! local assoc :stopped false)
+    (logging/debug "Started message loop")
     (if sync?
       (f)
       (assoc handler :loop (future (f))))))

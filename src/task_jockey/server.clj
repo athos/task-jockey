@@ -1,10 +1,15 @@
 (ns task-jockey.server
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
+            [clojure.tools.logging :as logging]
             [task-jockey.message-handler :as message]
             [task-jockey.settings :as settings])
   (:import [java.io PushbackReader]
-           [java.net InetAddress Socket ServerSocket SocketException]))
+           [java.net
+            InetAddress
+            ServerSocket
+            Socket
+            SocketException]))
 
 (defrecord Server [socket host port])
 
@@ -36,7 +41,9 @@
 
 (defn start-server [{:keys [host port] :or {port 0} :as opts}]
   (let [address (InetAddress/getByName host)
-        socket (ServerSocket. port 0 address)]
+        socket (ServerSocket. port 0 address)
+        port (.getLocalPort socket)]
+    (logging/infof "Started server at %s:%d" host port)
     (future
       (loop []
         (when (not (.isClosed socket))
@@ -48,8 +55,9 @@
                 (accept conn in out opts)))
             (catch SocketException _disconnect))
           (recur))))
-    (->Server socket host (.getLocalPort socket))))
+    (->Server socket host port)))
 
 (defn stop-server [{:keys [^ServerSocket socket]}]
   (when-not (.isClosed socket)
-    (.close socket)))
+    (.close socket)
+    (logging/info "Stopped server")))
