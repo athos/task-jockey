@@ -3,7 +3,7 @@
 (require '[babashka.deps :as deps]
          '[clojure.edn :as edn])
 
-(deps/add-deps '{:deps {io.github.athos/task-jockey {:git/sha "1401f25fb4b8da7e28ed407cc30f86d39cefd10f"}}})
+(deps/add-deps '{:deps {io.github.athos/task-jockey {:git/sha "182521c3a44a2c17e612988ffaba76e98d289283"}}})
 
 (require 'task-jockey.cli)
 
