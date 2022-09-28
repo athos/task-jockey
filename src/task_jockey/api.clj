@@ -1,5 +1,5 @@
 (ns task-jockey.api
-  (:refer-clojure :exclude [send])
+  (:refer-clojure :exclude [remove send])
   (:require [task-jockey.client :as client]
             [task-jockey.log :as log]
             [task-jockey.protocols :as proto]
@@ -28,6 +28,11 @@
       (cond edn (:status res)
             group (state/print-single-group (:status res) group)
             :else (state/print-all-groups (:status res))))))
+
+(defn remove [id-or-ids]
+  (let [task-ids (utils/->coll id-or-ids)
+        res (client/remove (current-client) task-ids)]
+    (select-keys res [:removed])))
 
 (defn clean []
   (client/clean (current-client))

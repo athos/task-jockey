@@ -1,5 +1,5 @@
 (ns task-jockey.client
-  (:refer-clojure :exclude [send])
+  (:refer-clojure :exclude [remove send])
   (:require [task-jockey.protocols :as proto]
             [task-jockey.task :as task]))
 
@@ -26,6 +26,9 @@
 
 (defn status [client]
   (send-and-recv client :status))
+
+(defn remove [client task-ids]
+  (send-and-recv client :remove :task-ids task-ids))
 
 (defn clean [client]
   (send-and-recv client :clean))

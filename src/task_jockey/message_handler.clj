@@ -1,5 +1,6 @@
 (ns task-jockey.message-handler
   (:require [clojure.java.io :as io]
+            [clojure.string :as str]
             [task-jockey.log :as log]
             [task-jockey.message-queue :as queue]
             [task-jockey.state :as state]
@@ -39,6 +40,24 @@
                 @system/state)]
     {:type :status-response
      :status state}))
+
+(defmethod handle-message :remove [{:keys [task-ids]}]
+  (locking system/state
+    (let [{:keys [tasks] :as state} @system/state
+          ids (or (not-empty task-ids) (keys tasks))
+          {running false, not-running true}
+          (group-by (fn [id]
+                      (let [task (tasks id)]
+                        (or (= (:status task) :queued)
+                            (task/task-done? task))))
+                    ids)
+          removables (into #{}
+                           (filter #(state/task-removable? state not-running %))
+                           not-running)
+          _non-removables (into #{} (remove removables) running)]
+      (vswap! system/state state/remove-tasks removables)
+      (success (str "Tasks removed from list: " (str/join ", " removables))
+               :removed removables))))
 
 (defmethod handle-message :clean [_]
   (locking system/state

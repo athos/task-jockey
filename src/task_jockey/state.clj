@@ -16,6 +16,9 @@
 (defn edit-task [state task-id command]
   (assoc-in state [:tasks task-id :command] command))
 
+(defn remove-tasks [state task-ids]
+  (update state :tasks #(apply dissoc % task-ids)))
+
 (defn stash-tasks [state task-ids]
   (reduce (fn [state task-id]
             (assoc-in state [:tasks task-id :status] :stashed))
